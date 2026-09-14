@@ -112,14 +112,6 @@ function initDeck() {
   activate(0);
 }
 
-/* Dimensional ring for the final CTA */
-function buildRing() {
-  const ring = document.querySelector('[data-ring]');
-  if (!ring) return;
-  const count = window.matchMedia('(max-width: 720px)').matches ? 28 : 48;
-  ring.innerHTML = Array.from({ length: count }, (_, i) => `<i style="--a:${(360 / count) * i}deg"></i>`).join('');
-}
-
 function initChainActions() {
   const btn = document.querySelector('[data-add-network]');
   if (!btn) return;
@@ -131,25 +123,40 @@ function initChainActions() {
   });
 }
 
-/* Hero WebGL loads after first paint, only if WebGL exists */
-function loadHero() {
-  const stage = document.querySelector('[data-hero-stage]');
-  if (!stage) return;
-  const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+/* WebGL object scenes: hero after first paint, CTA when it nears the viewport */
+function loadScenes() {
+  const stages = [...document.querySelectorAll('[data-scene]')];
+  if (!stages.length) return;
+  const probe = document.createElement('canvas');
+  const gl = probe.getContext('webgl2') || probe.getContext('webgl');
   if (!gl) return;
   gl.getExtension('WEBGL_lose_context')?.loseContext();
-  const go = () =>
-    import('./three/hero-scene.js')
-      .then(({ mountHeroScene }) => mountHeroScene(stage, { reduced: reducedMotion() }))
+
+  let modulePromise;
+  const mount = (stage) => {
+    modulePromise ||= import('./three/object-scene.js');
+    modulePromise
+      .then(({ mountObjectScene }) => mountObjectScene(stage, { variant: stage.dataset.scene, reduced: reducedMotion() }))
       .catch(() => {});
-  if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 1200 });
-  else setTimeout(go, 300);
+  };
+
+  stages.forEach((stage) => {
+    if (stage.dataset.scene === 'hero') {
+      if ('requestIdleCallback' in window) requestIdleCallback(() => mount(stage), { timeout: 1200 });
+      else setTimeout(() => mount(stage), 300);
+      return;
+    }
+    const io = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      io.disconnect();
+      mount(stage);
+    }, { rootMargin: '400px 0px' });
+    io.observe(stage);
+  });
 }
 
 renderNetworkFacts();
 renderRegistry();
-buildRing();
 initNav();
 mountContractAddress();
 mountPool();
@@ -158,4 +165,4 @@ initMotion();
 initWallet();
 initChainActions();
 watchBlock();
-loadHero();
+loadScenes();

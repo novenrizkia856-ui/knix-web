@@ -55,8 +55,8 @@
       <!-- ═════════ HERO ═════════ -->
       <section class="hero" id="top" aria-labelledby="hero-title" data-live>
         <div class="hero__sky" aria-hidden="true"></div>
-        <div class="hero__stage" data-hero-stage aria-hidden="true">
-          <div class="hero__fallback"><span></span></div>
+        <div class="hero__stage" data-scene="hero" aria-hidden="true">
+          <div class="hero__fallback"><span class="hero__fallback-a"><span class="solid solid--glass" style="--w:170px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="hero__fallback-b"><span class="solid solid--iris" style="--w:64px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span></div>
         </div>
         <div class="hero__horizon" aria-hidden="true"></div>
 
@@ -106,8 +106,8 @@
             <div class="pool-stage__scene" data-tilt="4">
               <span class="plate plate--1" aria-hidden="true"></span>
               <span class="plate plate--2" aria-hidden="true"></span>
-              <span class="float-coin float-coin--a" aria-hidden="true"><span class="coin"><span>K</span></span></span>
-              <span class="float-coin float-coin--b" aria-hidden="true"><span class="coin coin--b"><span>E</span></span></span>
+              <span class="float-obj float-obj--a" aria-hidden="true"><span class="solid solid--iris" style="--w:58px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
+              <span class="float-obj float-obj--b" aria-hidden="true"><span class="solid solid--pearl" style="--w:16px;--h:110px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
               <div class="pool-stage__card" data-pool></div>
             </div>
             <a class="pool-stage__link" href="/app.html">
@@ -188,7 +188,7 @@
               <div class="deck__visual v-stake" aria-hidden="true">
                 <div class="v-stake__scene">
                   <span style="--z:0"></span><span style="--z:1"></span><span style="--z:2"></span><span style="--z:3"></span><span style="--z:4"></span><span style="--z:5"></span><span style="--z:6"></span>
-                  <i class="v-stake__ring"></i>
+                  <i class="v-stake__frame"></i>
                 </div>
               </div>
             </article>
@@ -218,7 +218,7 @@
                 <p>Machine access to the same pool.</p>
               </div>
               <div class="deck__visual v-agents" aria-hidden="true">
-                <div class="v-agents__orbit"><i></i><i></i><i></i><b></b></div>
+                <div class="v-agents__orbit"><i></i><i></i><i></i><span class="solid solid--iris v-agents__core" style="--w:44px"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
                 <pre class="v-agents__term"><span>knix.pool</span>.connect()
 <span>watch</span>(range)
 <span>rebalance</span>(onDrift)</pre>
@@ -285,7 +285,7 @@
           <path class="cta__ribbon cta__ribbon--b" d="M-100 180 C 260 320, 640 40, 1000 220 S 1380 260, 1600 120" stroke="url(#rb2)" stroke-width="60" fill="none" filter="url(#rbBlur)"/>
           <path class="cta__ribbon cta__ribbon--c" d="M-100 560 C 300 380, 620 700, 980 460 S 1400 300, 1600 380" stroke="#e9e7ff" stroke-opacity=".5" stroke-width="1.2" fill="none"/>
         </svg>
-        <div class="cta__ring" aria-hidden="true"><div class="cta__ring-inner" data-ring></div></div>
+        <div class="cta__stage" data-scene="cta" aria-hidden="true"></div>
         <div class="wrap cta__inner">
           <h2 id="cta-title" class="display cta__title" data-split>Enter the <em>Pool</em></h2>
           <p class="section__lede" data-reveal="rise">One position. Built to keep moving.</p>

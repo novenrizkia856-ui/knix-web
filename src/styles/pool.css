@@ -154,45 +154,32 @@
   .field__max { display: none; }
 }
 
-/* ───────── Composition disc (CSS 3D) ───────── */
-.comp {
-  position: relative; display: grid; justify-items: center; gap: 22px;
-  perspective: 900px;
-}
-.comp__disc {
-  position: relative; width: min(300px, 70vw); aspect-ratio: 1;
-  transform-style: preserve-3d;
-  transform: rotateX(62deg) rotateZ(calc(-30deg + var(--p, 0.5) * 60deg));
+/* ───────── Composition: dimensional prisms on a plinth ───────── */
+.comp { position: relative; display: grid; justify-items: center; gap: 22px; }
+.comp__stage { position: relative; width: 100%; height: 280px; display: grid; place-items: center; perspective: 1100px; }
+.comp__scene {
+  position: relative; width: 0; height: 0; transform-style: preserve-3d;
+  transform: rotateX(-24deg) rotateY(calc(28deg + var(--p, 0.5) * 30deg));
   transition: transform 600ms var(--ease-out);
 }
-.comp__layer, .comp__top {
-  position: absolute; inset: 0; border-radius: 50%;
-  -webkit-mask: radial-gradient(circle, transparent 38%, #000 38.5%);
-  mask: radial-gradient(circle, transparent 38%, #000 38.5%);
+.comp__scene > .solid { position: absolute; left: calc(var(--w) / -2); top: calc(var(--h) / -2); }
+.solid.comp__plinth { --w: 200px; --h: 16px; transform: translate3d(0, 92px, 0); }
+.solid.comp__prism--a { --w: 58px; --h: 150px; transform: translate3d(-46px, 9px, 34px); }
+.solid.comp__prism--b { --w: 58px; --h: 118px; transform: translate3d(46px, 25px, -34px); }
+.comp[data-comp-state='pending'] .comp__prism i {
+  --face: linear-gradient(160deg, rgba(196, 189, 255, 0.18), rgba(74, 63, 209, 0.04));
+  box-shadow: inset 0 0 0 1px rgba(196, 189, 255, 0.45);
+  backface-visibility: visible;
+  overflow: hidden;
 }
-.comp__layer {
-  transform: translateZ(calc(var(--z) * 3px));
-  background: conic-gradient(from 210deg, #2e2780 0 50%, #3a4252 50% 100%);
-  filter: brightness(calc(0.45 + var(--z) * 0.04));
+.comp[data-comp-state='pending'] .comp__prism i::after {
+  content: ''; position: absolute; left: 0; right: 0; height: 30%;
+  background: linear-gradient(180deg, transparent, rgba(196, 189, 255, 0.35), transparent);
+  animation: prism-scan 3.2s var(--ease-std) infinite;
 }
-.comp__top {
-  transform: translateZ(28px);
-  background:
-    conic-gradient(from 210deg, rgba(255,255,255,0.0) 0 49.6%, rgba(8,8,12,1) 49.6% 50.4%, rgba(255,255,255,0) 50.4% 99.6%, rgba(8,8,12,1) 99.6%),
-    conic-gradient(from 210deg, #b3abff, #7f74f5 25%, #564bd9 50%, #e9eef5 50%, #aab4c2 75%, #cfd6df 100%);
-  box-shadow: 0 0 60px rgba(150, 140, 255, 0.35);
-}
-.comp[data-comp-state='pending'] .comp__top {
-  background:
-    repeating-conic-gradient(from 0deg, rgba(196,189,255,0.55) 0 2deg, transparent 2deg 9deg);
-  animation: comp-spin 24s linear infinite;
-}
-.comp[data-comp-state='pending'] .comp__layer { background: #1a1830; }
-@keyframes comp-spin { to { rotate: 360deg; } }
-.comp__center {
-  position: absolute; top: calc(min(300px, 70vw) * 0.5 - 20px); left: 50%; transform: translateX(-50%);
-  display: grid; justify-items: center; gap: 2px; text-align: center; pointer-events: none;
-}
+.comp[data-comp-state='pending'] .comp__prism--b i::after { animation-delay: -1.6s; }
+@keyframes prism-scan { from { top: 100%; } to { top: -30%; } }
+.comp__center { display: grid; justify-items: center; gap: 2px; text-align: center; }
 .comp__label { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
 .comp__value { font-family: var(--font-display); font-size: 22px; }
 .comp__legend { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }

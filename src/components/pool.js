@@ -108,9 +108,12 @@ function template() {
 function compositionTemplate() {
   return `
   <div class="comp" data-comp-state="pending">
-    <div class="comp__disc" aria-hidden="true">
-      ${Array.from({ length: 9 }, (_, i) => `<span class="comp__layer" style="--z:${i}"></span>`).join('')}
-      <span class="comp__top"></span>
+    <div class="comp__stage" aria-hidden="true">
+      <div class="comp__scene">
+        <span class="solid solid--graphite comp__plinth"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="solid solid--iris comp__prism comp__prism--a"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="solid solid--pearl comp__prism comp__prism--b"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      </div>
     </div>
     <div class="comp__center">
       <span class="comp__label">Composition</span>
