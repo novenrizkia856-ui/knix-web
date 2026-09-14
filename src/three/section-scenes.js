@@ -136,38 +136,6 @@ function twofold({ kit, small }) {
   };
 }
 
-/* Objects floating around the pool card */
-function poolFloat({ kit }) {
-  const { mats } = kit;
-  const fov = 35;
-  const distance = 9;
-  const { scene, camera } = stage({ small: true, fov, shadow: false });
-  aim(camera, [0, 0, distance], [0, 0, 0]);
-
-  const cube = new Mesh(new RoundedBoxGeometry(0.62, 0.62, 0.62, 6, 0.09), mats.lacquer);
-  const bar = new Mesh(new RoundedBoxGeometry(0.16, 1.3, 0.16, 4, 0.06), mats.chrome);
-  const gem = new Mesh(new OctahedronGeometry(0.28, 0), mats.gold);
-  scene.add(cube, bar, gem);
-  const halfH = Math.tan(((fov * Math.PI) / 180) / 2) * distance;
-
-  return {
-    // positions are computed from the real frustum, so never zoom this view out
-    fitAspect: 0.01,
-    scene,
-    camera,
-    // objects live in the margin band around the card, never over its controls
-    update(t, { pointer, aspect }) {
-      const halfW = halfH * aspect;
-      cube.position.set(halfW * 0.7 + pointer.x * 0.1, halfH * 0.9 + Math.sin(t * 0.7) * 0.05, 0.5);
-      cube.rotation.set(t * 0.25, t * 0.4, 0.3);
-      bar.position.set(-halfW * 0.55, halfH * 0.9 + Math.sin(t * 0.6 + 1) * 0.05, 0.2);
-      bar.rotation.set(0.2, t * 0.5, 1.2);
-      gem.position.set(halfW * 0.62, -halfH * 0.92 + Math.sin(t * 0.9) * 0.04, -0.2);
-      gem.rotation.set(t * 0.6, t * 0.3, 0);
-    },
-  };
-}
-
 /* Swap: two material tiles joined by a chrome route with light pulses */
 function swap({ kit, small }) {
   const { mats } = kit;
@@ -441,7 +409,6 @@ function chain({ kit, small }) {
 export const BUILDERS = {
   composition,
   twofold,
-  'pool-float': poolFloat,
   swap,
   stake,
   vote,

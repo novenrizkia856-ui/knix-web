@@ -1,6 +1,6 @@
 /**
  * Hero and CTA renders on their own canvases (they sit behind headline text).
- *   hero: interlocked lacquer and chrome links inside a field of real materials
+ *   hero: a loose field of real material shards
  *   cta:  a material field that frames the headline
  * Renders only while visible and disposes on teardown.
  */
@@ -21,11 +21,12 @@ import {
   TetrahedronGeometry,
 } from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { createMaterials, createRenderer, frameGeometry, rng, studioEnvironment } from './look.js';
+import { createMaterials, createRenderer, rng, studioEnvironment } from './look.js';
 
 export function mountObjectScene(container, { variant = 'hero', reduced = false } = {}) {
   const small = window.matchMedia('(max-width: 720px)').matches;
   const isHero = variant === 'hero';
+  const stacked = window.matchMedia('(max-width: 960px)').matches;
   let renderer;
   try {
     renderer = createRenderer({ small, shadows: isHero });
@@ -62,26 +63,6 @@ export function mountObjectScene(container, { variant = 'hero', reduced = false 
   const geometries = [];
   const track = (g) => (geometries.push(g), g);
 
-  let core = null;
-  if (isHero) {
-    const frame = track(frameGeometry(small));
-    const linkA = new Mesh(frame, mats.lacquer);
-    const linkB = new Mesh(frame, mats.chrome);
-    [linkA, linkB].forEach((m) => {
-      m.castShadow = true;
-      m.receiveShadow = true;
-    });
-    linkB.rotation.x = Math.PI / 2;
-    linkB.position.x = 1.2;
-    const links = new Group();
-    links.add(linkA, linkB);
-    links.position.x = -0.6;
-    core = new Group();
-    core.add(links);
-    core.scale.setScalar(small ? 0.9 : 0.78);
-    world.add(core);
-  }
-
   const shapes = [
     track(new OctahedronGeometry(0.34, 0)),
     track(new RoundedBoxGeometry(0.46, 0.46, 0.46, 5, 0.08)),
@@ -102,11 +83,11 @@ export function mountObjectScene(container, { variant = 'hero', reduced = false 
     let y;
     let z;
     if (isHero) {
-      const a = (i / count) * Math.PI * 2 + random() * 0.5;
-      const r = 2.3 + random() * 1.4;
-      x = Math.cos(a) * r * 1.15;
-      y = Math.sin(a) * r * 0.75;
-      z = (random() - 0.5) * 2.6 - 0.3;
+      // loose field, kept right of the headline when the stage sits beside it
+      const spread = (i + random()) / count;
+      x = stacked ? (spread - 0.5) * 7 : spread * 4.6 - 0.9;
+      y = (random() - 0.5) * 5;
+      z = (random() - 0.5) * 3 - 0.3;
     } else {
       const side = i % 2 ? 1 : -1;
       x = side * (2.6 + random() * (small ? 1.2 : 3));
@@ -156,12 +137,6 @@ export function mountObjectScene(container, { variant = 'hero', reduced = false 
   function render(t) {
     pointer.x += (pointer.tx - pointer.x) * 0.05;
     pointer.y += (pointer.ty - pointer.y) * 0.05;
-    if (core) {
-      core.rotation.y = -0.65 + Math.sin(t * 0.22) * 0.55 + pointer.x * 0.45;
-      core.rotation.x = 0.38 + Math.sin(t * 0.31) * 0.14 + pointer.y * 0.25;
-      core.rotation.z = 0.18 + Math.sin(t * 0.17) * 0.08;
-      core.position.y = Math.sin(t * 0.5) * 0.08;
-    }
     for (const s of shards) {
       s.mesh.rotation.x = s.rx + t * s.sx;
       s.mesh.rotation.y = s.ry + t * s.sy;
