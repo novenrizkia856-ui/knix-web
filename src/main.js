@@ -57,7 +57,7 @@ function renderRegistry() {
       const value = ok
         ? `<a href="${explorerUrl('address', address)}" target="_blank" rel="noopener" class="mono">${shortAddress(address)}</a>`
         : '<span class="registry__pending">Pending</span>';
-      return `<li><span class="dot ${ok ? 'dot--glacier' : ''}"></span><span>${label}</span>${value}</li>`;
+      return `<li><span class="dot ${ok ? 'dot--warm' : ''}"></span><span>${label}</span>${value}</li>`;
     })
     .join('');
   const count = document.querySelector('[data-registry-count]');
@@ -78,7 +78,7 @@ function watchBlock() {
       dot.className = 'dot';
     } else {
       out.textContent = block.toLocaleString('en-US');
-      dot.className = 'dot dot--glacier';
+      dot.className = 'dot dot--warm';
     }
   };
   new IntersectionObserver(([entry]) => {
@@ -155,6 +155,14 @@ function loadScenes() {
   });
 }
 
+/* Photographic section renders share one WebGL overlay */
+function loadViews() {
+  if (!document.querySelector('[data-gl]')) return;
+  const go = () => import('./three/views.js').then(({ initViews }) => initViews()).catch(() => {});
+  if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 2000 });
+  else setTimeout(go, 600);
+}
+
 renderNetworkFacts();
 renderRegistry();
 initNav();
@@ -166,3 +174,4 @@ initWallet();
 initChainActions();
 watchBlock();
 loadScenes();
+loadViews();

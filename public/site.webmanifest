@@ -3,7 +3,7 @@
   "short_name": "Knix",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#07070b",
-  "theme_color": "#07070b",
+  "background_color": "#0a0707",
+  "theme_color": "#0a0707",
   "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
 }

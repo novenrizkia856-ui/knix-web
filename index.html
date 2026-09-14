@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Knix | Liquidity on Robinhood Chain</title>
     <meta name="description" content="Knix is the liquidity layer for Robinhood Chain. One pool. Capital that works twice." />
-    <meta name="theme-color" content="#07070b" />
+    <meta name="theme-color" content="#0a0707" />
     <meta property="og:title" content="Knix" />
     <meta property="og:description" content="Capital that works twice. Built for Robinhood Chain." />
     <meta property="og:type" content="website" />
@@ -21,10 +21,10 @@
       <div class="wrap nav__bar">
         <a class="brand" href="#top" aria-label="Knix home">
           <svg class="brand__mark" viewBox="0 0 64 64" aria-hidden="true">
-            <defs><linearGradient id="bm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2f1ff"/><stop offset=".55" stop-color="#9d93ff"/><stop offset="1" stop-color="#4a3fd1"/></linearGradient></defs>
-            <rect x="1" y="1" width="62" height="62" rx="18" fill="#0e0d18" stroke="rgba(214,216,255,.16)"/>
+            <defs><linearGradient id="bm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf5f5"/><stop offset=".55" stop-color="#ff4152"/><stop offset="1" stop-color="#a3081d"/></linearGradient></defs>
+            <rect x="1" y="1" width="62" height="62" rx="18" fill="#160f0f" stroke="rgba(244, 225, 225,.16)"/>
             <path d="M22 16v32M22 32 42 16M22 32l20 16" fill="none" stroke="url(#bm)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="43" cy="32" r="3.6" fill="#7fdcf0"/>
+            <circle cx="43" cy="32" r="3.6" fill="#f2c9a0"/>
           </svg>
           KNIX
         </a>
@@ -56,7 +56,7 @@
       <section class="hero" id="top" aria-labelledby="hero-title" data-live>
         <div class="hero__sky" aria-hidden="true"></div>
         <div class="hero__stage" data-scene="hero" aria-hidden="true">
-          <div class="hero__fallback"><span class="hero__fallback-a"><span class="solid solid--glass" style="--w:170px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="hero__fallback-b"><span class="solid solid--iris" style="--w:64px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span></div>
+          <div class="hero__fallback"><span class="hero__fallback-a"><span class="solid solid--glass" style="--w:170px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span><span class="hero__fallback-b"><span class="solid solid--accent" style="--w:64px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span></div>
         </div>
         <div class="hero__horizon" aria-hidden="true"></div>
 
@@ -103,10 +103,11 @@
           </div>
 
           <div class="pool-stage" data-reveal="depth">
+            <div class="pool-stage__gl" data-gl="pool-float" aria-hidden="true"></div>
             <div class="pool-stage__scene" data-tilt="4">
               <span class="plate plate--1" aria-hidden="true"></span>
               <span class="plate plate--2" aria-hidden="true"></span>
-              <span class="float-obj float-obj--a" aria-hidden="true"><span class="solid solid--iris" style="--w:58px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
+              <span class="float-obj float-obj--a" aria-hidden="true"><span class="solid solid--accent" style="--w:58px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
               <span class="float-obj float-obj--b" aria-hidden="true"><span class="solid solid--pearl" style="--w:16px;--h:110px"><i></i><i></i><i></i><i></i><i></i><i></i></span></span>
               <div class="pool-stage__card" data-pool></div>
             </div>
@@ -125,12 +126,19 @@
         </div>
         <div class="wrap twofold__grid">
           <div class="twofold__visual" aria-hidden="true">
+            <div class="twofold__gl" data-gl="twofold">
             <div class="stack">
               <div class="stack__plane stack__plane--base"><i>Liquidity</i></div>
               <div class="stack__plane stack__plane--mid"><i>Fees</i></div>
               <div class="stack__plane stack__plane--top"><i>Stake</i></div>
               <span class="stack__beam"></span>
             </div>
+            </div>
+            <ul class="twofold__legend">
+              <li><i class="sw-stake"></i>Stake</li>
+              <li><i class="sw-fees"></i>Fees</li>
+              <li><i class="sw-liq"></i>Liquidity</li>
+            </ul>
           </div>
           <div class="twofold__copy">
             <span class="eyebrow" data-reveal="rise">Twofold</span>
@@ -160,14 +168,14 @@
             <h2 id="eco-title" class="display section__title" data-split>One interface. <em>Every move.</em></h2>
           </div>
 
-          <div class="deck" data-deck>
-            <article class="deck__card is-active" data-deck-card>
+          <div class="deck" data-deck data-gl-clip>
+            <article class="deck__card is-active" data-deck-card data-gl-clip>
               <button class="deck__trigger" type="button" aria-expanded="true"><span class="mono">01</span><span>Swap</span></button>
               <div class="deck__body">
                 <h3 class="display">Swap</h3>
                 <p>Route any pair through Knix liquidity.</p>
               </div>
-              <div class="deck__visual v-swap" aria-hidden="true">
+              <div class="deck__visual v-swap" aria-hidden="true" data-gl="swap" data-gl-align="end">
                 <div class="v-row"><span class="coin coin--sm"><span>K</span></span><b>KNIX</b><span class="skel"></span></div>
                 <svg class="v-route" viewBox="0 0 300 120" preserveAspectRatio="none">
                   <path class="v-route__base" d="M20 20 C 120 20, 110 60, 150 60 S 180 100, 280 100"/>
@@ -179,13 +187,13 @@
               </div>
             </article>
 
-            <article class="deck__card" data-deck-card>
+            <article class="deck__card" data-deck-card data-gl-clip>
               <button class="deck__trigger" type="button" aria-expanded="false"><span class="mono">02</span><span>Stake</span></button>
               <div class="deck__body">
                 <h3 class="display">Stake</h3>
                 <p>Lock your share. Earn the second stream.</p>
               </div>
-              <div class="deck__visual v-stake" aria-hidden="true">
+              <div class="deck__visual v-stake" aria-hidden="true" data-gl="stake" data-gl-align="end">
                 <div class="v-stake__scene">
                   <span style="--z:0"></span><span style="--z:1"></span><span style="--z:2"></span><span style="--z:3"></span><span style="--z:4"></span><span style="--z:5"></span><span style="--z:6"></span>
                   <i class="v-stake__frame"></i>
@@ -193,15 +201,15 @@
               </div>
             </article>
 
-            <article class="deck__card" data-deck-card>
+            <article class="deck__card" data-deck-card data-gl-clip>
               <button class="deck__trigger" type="button" aria-expanded="false"><span class="mono">03</span><span>Vote</span></button>
               <div class="deck__body">
                 <h3 class="display">Vote</h3>
                 <p>Stakers steer fees, pairs and upgrades.</p>
               </div>
-              <div class="deck__visual v-vote" aria-hidden="true">
+              <div class="deck__visual v-vote" aria-hidden="true" data-gl="vote" data-gl-align="end">
                 <div class="v-vote__card">
-                  <span class="pill"><span class="dot dot--iris"></span>Proposal</span>
+                  <span class="pill"><span class="dot dot--accent"></span>Proposal</span>
                   <span class="skel skel--lg"></span>
                   <span class="skel skel--md"></span>
                   <div class="v-vote__choices"><span>For</span><span>Against</span><span>Abstain</span></div>
@@ -211,27 +219,27 @@
               </div>
             </article>
 
-            <article class="deck__card" data-deck-card>
+            <article class="deck__card" data-deck-card data-gl-clip>
               <button class="deck__trigger" type="button" aria-expanded="false"><span class="mono">04</span><span>Agents</span></button>
               <div class="deck__body">
                 <h3 class="display">Agents</h3>
                 <p>Machine access to the same pool.</p>
               </div>
-              <div class="deck__visual v-agents" aria-hidden="true">
-                <div class="v-agents__orbit"><i></i><i></i><i></i><span class="solid solid--iris v-agents__core" style="--w:44px"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+              <div class="deck__visual v-agents" aria-hidden="true" data-gl="agents" data-gl-align="end">
+                <div class="v-agents__orbit"><i></i><i></i><i></i><span class="solid solid--accent v-agents__core" style="--w:44px"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
                 <pre class="v-agents__term"><span>knix.pool</span>.connect()
 <span>watch</span>(range)
 <span>rebalance</span>(onDrift)</pre>
               </div>
             </article>
 
-            <article class="deck__card" data-deck-card>
+            <article class="deck__card" data-deck-card data-gl-clip>
               <button class="deck__trigger" type="button" aria-expanded="false"><span class="mono">05</span><span>Markets</span></button>
               <div class="deck__body">
                 <h3 class="display">Markets</h3>
                 <p>Every pair on one surface.</p>
               </div>
-              <div class="deck__visual v-markets" aria-hidden="true">
+              <div class="deck__visual v-markets" aria-hidden="true" data-gl="markets" data-gl-align="end">
                 <div class="v-markets__grid">
                   <div class="v-tile v-tile--hi"><b>KNIX/ETH</b><svg viewBox="0 0 100 30"><path d="M0 22 C 15 20, 22 8, 38 12 S 60 26, 74 14 S 92 6, 100 8"/></svg></div>
                   <div class="v-tile"><span class="skel"></span><svg viewBox="0 0 100 30"><path d="M0 18 C 20 24, 30 10, 50 14 S 80 20, 100 12"/></svg></div>
@@ -251,7 +259,7 @@
           <div class="chain__copy">
             <span class="eyebrow" data-reveal="rise">Network</span>
             <h2 id="chain-title" class="display section__title" data-split>Built for <em>Robinhood Chain</em></h2>
-            <div class="chain__numeral" aria-hidden="true" data-reveal="depth"><span data-net="chainId"></span></div>
+            <div class="chain__numeral" data-reveal="depth"><span data-net="chainId" aria-hidden="true"></span><div class="chain__links" data-gl="chain" aria-hidden="true"></div></div>
             <div class="chain__actions" data-reveal="rise">
               <button type="button" class="btn btn--ghost" data-add-network>Add network</button>
               <a class="btn btn--ghost" data-net-explorer target="_blank" rel="noopener">Explorer</a>
@@ -277,13 +285,13 @@
       <section class="cta" aria-labelledby="cta-title" data-live>
         <svg class="cta__ribbons" viewBox="0 0 1440 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
           <defs>
-            <linearGradient id="rb1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#4a3fd1" stop-opacity="0"/><stop offset=".5" stop-color="#968cff"/><stop offset="1" stop-color="#4a3fd1" stop-opacity="0"/></linearGradient>
-            <linearGradient id="rb2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7fdcf0" stop-opacity="0"/><stop offset=".5" stop-color="#7fdcf0" stop-opacity=".7"/><stop offset="1" stop-color="#7fdcf0" stop-opacity="0"/></linearGradient>
+            <linearGradient id="rb1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a3081d" stop-opacity="0"/><stop offset=".5" stop-color="#ff2d42"/><stop offset="1" stop-color="#a3081d" stop-opacity="0"/></linearGradient>
+            <linearGradient id="rb2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2c9a0" stop-opacity="0"/><stop offset=".5" stop-color="#f2c9a0" stop-opacity=".7"/><stop offset="1" stop-color="#f2c9a0" stop-opacity="0"/></linearGradient>
             <filter id="rbBlur"><feGaussianBlur stdDeviation="28"/></filter>
           </defs>
           <path class="cta__ribbon cta__ribbon--a" d="M-100 560 C 300 380, 620 700, 980 460 S 1400 300, 1600 380" stroke="url(#rb1)" stroke-width="120" fill="none" filter="url(#rbBlur)"/>
           <path class="cta__ribbon cta__ribbon--b" d="M-100 180 C 260 320, 640 40, 1000 220 S 1380 260, 1600 120" stroke="url(#rb2)" stroke-width="60" fill="none" filter="url(#rbBlur)"/>
-          <path class="cta__ribbon cta__ribbon--c" d="M-100 560 C 300 380, 620 700, 980 460 S 1400 300, 1600 380" stroke="#e9e7ff" stroke-opacity=".5" stroke-width="1.2" fill="none"/>
+          <path class="cta__ribbon cta__ribbon--c" d="M-100 560 C 300 380, 620 700, 980 460 S 1400 300, 1600 380" stroke="#f8eeee" stroke-opacity=".5" stroke-width="1.2" fill="none"/>
         </svg>
         <div class="cta__stage" data-scene="cta" aria-hidden="true"></div>
         <div class="wrap cta__inner">

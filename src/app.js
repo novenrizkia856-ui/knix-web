@@ -52,7 +52,7 @@ function renderReadiness() {
   list.innerHTML = rows
     .map(([label, address]) => {
       const ok = isConfiguredAddress(address);
-      return `<li><span class="dot ${ok ? 'dot--glacier' : ''}"></span>${label}<b>${ok ? `<a href="${explorerUrl('address', address)}" target="_blank" rel="noopener">${shortAddress(address)}</a>` : 'Pending'}</b></li>`;
+      return `<li><span class="dot ${ok ? 'dot--warm' : ''}"></span>${label}<b>${ok ? `<a href="${explorerUrl('address', address)}" target="_blank" rel="noopener">${shortAddress(address)}</a>` : 'Pending'}</b></li>`;
     })
     .join('');
   document.querySelector('[data-ready-count]').textContent = `${set} of ${rows.length}`;
@@ -67,7 +67,7 @@ function renderRegistry() {
       const ok = isConfiguredAddress(address);
       if (ok) set += 1;
       const label = key.replace(/_ADDRESS$/, '').replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\w/g, (c) => c.toUpperCase());
-      return `<li><span class="dot ${ok ? 'dot--glacier' : ''}"></span>${label}<b>${ok ? shortAddress(address) : 'Pending'}</b></li>`;
+      return `<li><span class="dot ${ok ? 'dot--warm' : ''}"></span>${label}<b>${ok ? shortAddress(address) : 'Pending'}</b></li>`;
     })
     .join('');
   document.querySelector('[data-registry-count]').textContent = `${set} of ${rows.length}`;
@@ -92,7 +92,7 @@ function initWalletUi() {
     });
 
     netLabel.textContent = w.connected && !w.onActiveChain ? 'Wrong network' : activeNetwork.name;
-    netDot.className = `dot ${w.connected && w.onActiveChain ? 'dot--glacier' : w.connected ? '' : 'dot--iris'}`;
+    netDot.className = `dot ${w.connected && w.onActiveChain ? 'dot--warm' : w.connected ? '' : 'dot--accent'}`;
 
     const profile = (k, v) => (document.querySelector(`[data-profile="${k}"]`).textContent = v);
     profile('address', w.connected ? shortAddress(w.account, 10, 8) : 'Not connected');
@@ -111,6 +111,14 @@ function initWalletUi() {
   );
 }
 
+/* Photographic section renders share one WebGL overlay */
+function loadViews() {
+  if (!document.querySelector('[data-gl]')) return;
+  const go = () => import('./three/views.js').then(({ initViews }) => initViews()).catch(() => {});
+  if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 2000 });
+  else setTimeout(go, 600);
+}
+
 document.querySelectorAll('[data-pending]').forEach((b) =>
   b.addEventListener('click', () => toast(b.dataset.pending, { anchor: b })),
 );
@@ -124,3 +132,4 @@ renderRegistry();
 initWalletUi();
 initWallet();
 initMotion();
+loadViews();

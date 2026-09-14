@@ -1,138 +1,76 @@
 /**
- * Dimensional object scenes for the landing page.
- *   hero: two interlocked frames (the twofold mark) inside a field of shards
- *   cta:  a shard field that frames the headline
- * Renders only while visible, caps pixel ratio, disposes on teardown.
+ * Hero and CTA renders on their own canvases (they sit behind headline text).
+ *   hero: interlocked lacquer and chrome links inside a field of real materials
+ *   cta:  a material field that frames the headline
+ * Renders only while visible and disposes on teardown.
  */
 import {
-  ACESFilmicToneMapping,
   BoxGeometry,
   BufferAttribute,
   BufferGeometry,
   Clock,
-  Color,
   DirectionalLight,
-  ExtrudeGeometry,
   Group,
   Mesh,
-  MeshPhysicalMaterial,
   OctahedronGeometry,
   PerspectiveCamera,
-  PMREMGenerator,
   PointLight,
   Points,
   PointsMaterial,
   Scene,
-  Shape,
-  SRGBColorSpace,
   TetrahedronGeometry,
-  WebGLRenderer,
 } from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-
-function rng(seed) {
-  return () => {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function roundedSquare(half, r) {
-  const s = new Shape();
-  s.moveTo(-half + r, -half);
-  s.lineTo(half - r, -half);
-  s.quadraticCurveTo(half, -half, half, -half + r);
-  s.lineTo(half, half - r);
-  s.quadraticCurveTo(half, half, half - r, half);
-  s.lineTo(-half + r, half);
-  s.quadraticCurveTo(-half, half, -half, half - r);
-  s.lineTo(-half, -half + r);
-  s.quadraticCurveTo(-half, -half, -half + r, -half);
-  return s;
-}
-
-function frameGeometry(low) {
-  const shape = roundedSquare(1.1, 0.26);
-  shape.holes.push(roundedSquare(0.72, 0.1));
-  const geo = new ExtrudeGeometry(shape, {
-    depth: 0.34,
-    bevelEnabled: true,
-    bevelThickness: 0.05,
-    bevelSize: 0.05,
-    bevelSegments: low ? 2 : 4,
-    curveSegments: low ? 4 : 10,
-  });
-  geo.center();
-  return geo;
-}
-
-function materials() {
-  return {
-    iris: new MeshPhysicalMaterial({
-      color: '#a89eff', metalness: 1, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.08,
-      iridescence: 0.85, iridescenceIOR: 1.6, iridescenceThicknessRange: [180, 720],
-    }),
-    silver: new MeshPhysicalMaterial({ color: '#dadce8', metalness: 1, roughness: 0.24, clearcoat: 0.6 }),
-    graphite: new MeshPhysicalMaterial({ color: '#2a2938', metalness: 0.85, roughness: 0.3, clearcoat: 0.9, clearcoatRoughness: 0.15 }),
-    pearl: new MeshPhysicalMaterial({
-      color: '#f1f0fa', metalness: 0.05, roughness: 0.14, clearcoat: 1,
-      sheen: 1, sheenColor: new Color('#c4bdff'), sheenRoughness: 0.4,
-    }),
-    glacier: new MeshPhysicalMaterial({
-      color: '#7fdcf0', metalness: 0.4, roughness: 0.2, clearcoat: 1, emissive: '#1b6f82', emissiveIntensity: 0.4,
-    }),
-  };
-}
+import { createMaterials, createRenderer, frameGeometry, rng, studioEnvironment } from './look.js';
 
 export function mountObjectScene(container, { variant = 'hero', reduced = false } = {}) {
   const small = window.matchMedia('(max-width: 720px)').matches;
   const isHero = variant === 'hero';
   let renderer;
   try {
-    renderer = new WebGLRenderer({ antialias: !small, alpha: true, powerPreference: 'high-performance' });
+    renderer = createRenderer({ small, shadows: isHero });
   } catch {
     return null;
   }
-  const dpr = Math.min(window.devicePixelRatio || 1, small ? 1.5 : 1.75);
-  renderer.setPixelRatio(dpr);
-  renderer.setClearColor(0x000000, 0);
-  renderer.outputColorSpace = SRGBColorSpace;
-  renderer.toneMapping = ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
   container.append(renderer.domElement);
 
   const scene = new Scene();
-  const pmrem = new PMREMGenerator(renderer);
-  const envTarget = pmrem.fromScene(new RoomEnvironment(), 0.04);
+  const envTarget = studioEnvironment(renderer);
   scene.environment = envTarget.texture;
-  scene.environmentIntensity = 0.85;
-  pmrem.dispose();
+  const kit = createMaterials({ small, transmission: true });
+  const { mats } = kit;
 
-  const key = new DirectionalLight('#ffffff', 1.6);
-  key.position.set(3, 4, 5);
-  const rim = new PointLight('#968cff', 40, 14);
-  rim.position.set(-3.5, 1.5, -2);
-  const cool = new PointLight('#7fdcf0', 16, 10);
-  cool.position.set(3, -2.5, 2.5);
-  scene.add(key, rim, cool);
+  const key = new DirectionalLight('#fff3ec', 2.4);
+  key.position.set(3, 5, 4);
+  if (isHero) {
+    key.castShadow = true;
+    const size = small ? 1024 : 2048;
+    key.shadow.mapSize.set(size, size);
+    Object.assign(key.shadow.camera, { left: -4.5, right: 4.5, top: 4.5, bottom: -4.5, near: 0.5, far: 20 });
+    key.shadow.bias = -0.0004;
+    key.shadow.normalBias = 0.03;
+  }
+  const rim = new PointLight('#ff1f36', 60, 16);
+  rim.position.set(-3.5, 1.5, -2.5);
+  const warm = new PointLight('#ffb48a', 12, 12);
+  warm.position.set(3, -2.5, 3);
+  scene.add(key, rim, warm);
 
   const camera = new PerspectiveCamera(30, 1, 0.1, 60);
   const world = new Group();
   scene.add(world);
-  const mats = materials();
   const geometries = [];
   const track = (g) => (geometries.push(g), g);
 
-  /* centerpiece: two interlocked frames */
   let core = null;
   if (isHero) {
     const frame = track(frameGeometry(small));
-    const linkA = new Mesh(frame, mats.iris);
-    const linkB = new Mesh(frame, mats.silver);
+    const linkA = new Mesh(frame, mats.lacquer);
+    const linkB = new Mesh(frame, mats.chrome);
+    [linkA, linkB].forEach((m) => {
+      m.castShadow = true;
+      m.receiveShadow = true;
+    });
     linkB.rotation.x = Math.PI / 2;
     linkB.position.x = 1.2;
     const links = new Group();
@@ -144,20 +82,22 @@ export function mountObjectScene(container, { variant = 'hero', reduced = false 
     world.add(core);
   }
 
-  /* shard field */
   const shapes = [
     track(new OctahedronGeometry(0.34, 0)),
+    track(new RoundedBoxGeometry(0.46, 0.46, 0.46, 5, 0.08)),
     track(new TetrahedronGeometry(0.38, 0)),
-    track(new RoundedBoxGeometry(0.44, 0.44, 0.44, 2, 0.06)),
-    track(new BoxGeometry(0.09, 0.09, 1.15)),
+    track(new RoundedBoxGeometry(0.1, 1.15, 0.1, 3, 0.04)),
     track(new OctahedronGeometry(0.2, 0)),
   ];
-  const palette = [mats.pearl, mats.graphite, mats.iris, mats.silver, mats.glacier, mats.graphite];
+  const palette = isHero
+    ? [mats.glass, mats.chrome, mats.lacquer, mats.aluminum, mats.gold, mats.graphite]
+    : [mats.chrome, mats.lacquer, mats.glass, mats.graphite, mats.gold, mats.aluminum];
   const random = rng(isHero ? 7 : 19);
-  const count = isHero ? (small ? 9 : 15) : small ? 10 : 18;
+  const count = isHero ? (small ? 9 : 14) : small ? 10 : 16;
   const shards = [];
   for (let i = 0; i < count; i++) {
     const mesh = new Mesh(shapes[i % shapes.length], palette[i % palette.length]);
+    mesh.castShadow = isHero;
     let x;
     let y;
     let z;
@@ -173,21 +113,20 @@ export function mountObjectScene(container, { variant = 'hero', reduced = false 
       y = (random() - 0.5) * (small ? 5.5 : 3.6);
       z = (random() - 0.5) * 3;
     }
-    mesh.scale.setScalar(0.7 + random() * (isHero ? 0.8 : 1.1));
+    mesh.scale.setScalar(0.75 + random() * (isHero ? 0.8 : 1.1));
     mesh.position.set(x, y, z);
     mesh.rotation.set(random() * 6, random() * 6, random() * 6);
     world.add(mesh);
     shards.push({
       mesh, x, y,
       rx: mesh.rotation.x, ry: mesh.rotation.y,
-      sx: (random() - 0.5) * 0.5, sy: (random() - 0.5) * 0.6,
-      phase: random() * 6, amp: 0.08 + random() * 0.14,
+      sx: (random() - 0.5) * 0.45, sy: (random() - 0.5) * 0.55,
+      phase: random() * 6, amp: 0.08 + random() * 0.12,
       depth: 0.6 + (z + 1.5) * 0.25,
     });
   }
 
-  /* fine dust for depth */
-  const dustCount = small ? 140 : 320;
+  const dustCount = small ? 120 : 260;
   const dust = new Float32Array(dustCount * 3);
   for (let i = 0; i < dustCount; i++) {
     dust[i * 3] = (random() - 0.5) * 12;
@@ -196,7 +135,7 @@ export function mountObjectScene(container, { variant = 'hero', reduced = false 
   }
   const dustGeo = track(new BufferGeometry());
   dustGeo.setAttribute('position', new BufferAttribute(dust, 3));
-  const dustMat = new PointsMaterial({ color: '#c4bdff', size: 0.018, transparent: true, opacity: 0.55, depthWrite: false });
+  const dustMat = new PointsMaterial({ color: '#ffb0a6', size: 0.016, transparent: true, opacity: 0.4, depthWrite: false });
   const dustPoints = new Points(dustGeo, dustMat);
   world.add(dustPoints);
 
@@ -217,7 +156,6 @@ export function mountObjectScene(container, { variant = 'hero', reduced = false 
   function render(t) {
     pointer.x += (pointer.tx - pointer.x) * 0.05;
     pointer.y += (pointer.ty - pointer.y) * 0.05;
-
     if (core) {
       core.rotation.y = -0.65 + Math.sin(t * 0.22) * 0.55 + pointer.x * 0.45;
       core.rotation.x = 0.38 + Math.sin(t * 0.31) * 0.14 + pointer.y * 0.25;
@@ -231,7 +169,6 @@ export function mountObjectScene(container, { variant = 'hero', reduced = false 
       s.mesh.position.y = s.y + Math.sin(t * 0.55 + s.phase) * s.amp - pointer.y * s.depth * 0.2;
     }
     dustPoints.rotation.y = t * 0.012 + pointer.x * 0.05;
-
     world.rotation.x = scrollP * 0.35;
     world.position.y = scrollP * 1.1;
     renderer.render(scene, camera);
@@ -293,7 +230,7 @@ export function mountObjectScene(container, { variant = 'hero', reduced = false 
     window.removeEventListener('scroll', onScroll);
     document.removeEventListener('visibilitychange', onVisibility);
     geometries.forEach((g) => g.dispose());
-    Object.values(mats).forEach((m) => m.dispose());
+    kit.dispose();
     dustMat.dispose();
     envTarget.dispose();
     renderer.dispose();

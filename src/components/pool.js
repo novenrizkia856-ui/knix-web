@@ -108,10 +108,10 @@ function template() {
 function compositionTemplate() {
   return `
   <div class="comp" data-comp-state="pending">
-    <div class="comp__stage" aria-hidden="true">
+    <div class="comp__stage" aria-hidden="true" data-gl="composition">
       <div class="comp__scene">
         <span class="solid solid--graphite comp__plinth"><i></i><i></i><i></i><i></i><i></i><i></i></span>
-        <span class="solid solid--iris comp__prism comp__prism--a"><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="solid solid--accent comp__prism comp__prism--a"><i></i><i></i><i></i><i></i><i></i><i></i></span>
         <span class="solid solid--pearl comp__prism comp__prism--b"><i></i><i></i><i></i><i></i><i></i><i></i></span>
       </div>
     </div>
@@ -157,10 +157,10 @@ export function mountPool(root = document) {
   /* status pill */
   const status = $('[data-pool-status]');
   if (readiness.ready) {
-    status.querySelector('.dot').classList.add('dot--glacier');
+    status.querySelector('.dot').classList.add('dot--warm');
     status.lastElementChild.textContent = 'Contracts set';
   } else {
-    status.querySelector('.dot').classList.add('dot--iris', 'dot--pulse');
+    status.querySelector('.dot').classList.add('dot--accent', 'dot--pulse');
   }
 
   /* tabs */

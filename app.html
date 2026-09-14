@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Knix App | Pool</title>
     <meta name="description" content="Knix Pool on Robinhood Chain." />
-    <meta name="theme-color" content="#07070b" />
+    <meta name="theme-color" content="#0a0707" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="manifest" href="/site.webmanifest" />
     <script type="module" src="/src/app.js"></script>
@@ -16,10 +16,10 @@
       <aside class="side" aria-label="Knix modules">
         <a class="brand side__brand" href="/" aria-label="Knix home">
           <svg class="brand__mark" viewBox="0 0 64 64" aria-hidden="true">
-            <defs><linearGradient id="bm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f2f1ff"/><stop offset=".55" stop-color="#9d93ff"/><stop offset="1" stop-color="#4a3fd1"/></linearGradient></defs>
-            <rect x="1" y="1" width="62" height="62" rx="18" fill="#0e0d18" stroke="rgba(214,216,255,.16)"/>
+            <defs><linearGradient id="bm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbf5f5"/><stop offset=".55" stop-color="#ff4152"/><stop offset="1" stop-color="#a3081d"/></linearGradient></defs>
+            <rect x="1" y="1" width="62" height="62" rx="18" fill="#160f0f" stroke="rgba(244, 225, 225,.16)"/>
             <path d="M22 16v32M22 32 42 16M22 32l20 16" fill="none" stroke="url(#bm)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="43" cy="32" r="3.6" fill="#7fdcf0"/>
+            <circle cx="43" cy="32" r="3.6" fill="#f2c9a0"/>
           </svg>
           KNIX
         </a>
@@ -80,14 +80,14 @@
           <section class="view" data-view="swap" aria-label="Swap" hidden>
             <div class="surface-grid">
               <div class="panel surface">
-                <div class="panel__head"><h2>Swap</h2><span class="pill"><span class="dot dot--iris"></span>Preview</span></div>
+                <div class="panel__head"><h2>Swap</h2><span class="pill"><span class="dot dot--accent"></span>Preview</span></div>
                 <div class="field is-static"><div class="field__top"><span>Sell</span></div><div class="field__row"><span class="field__ghost">0.0</span><span class="token-chip"><span class="coin coin--sm"><span>K</span></span>KNIX</span></div></div>
                 <span class="swap-flip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l-3-3M16 19V5l3 3"/></svg></span>
                 <div class="field is-static"><div class="field__top"><span>Buy</span></div><div class="field__row"><span class="field__ghost">0.0</span><span class="token-chip"><span class="coin coin--b coin--sm"><span>E</span></span>ETH</span></div></div>
                 <button type="button" class="btn btn--block btn--ghost" data-pending="Router contract pending">Router contract pending</button>
               </div>
-              <div class="panel stage-panel is-live" data-live>
-                <div class="deck__visual v-swap" aria-hidden="true">
+              <div class="panel stage-panel is-live" data-live data-gl-clip>
+                <div class="deck__visual v-swap" aria-hidden="true" data-gl="swap">
                   <div class="v-row"><span class="coin coin--sm"><span>K</span></span><b>KNIX</b><span class="skel"></span></div>
                   <svg class="v-route" viewBox="0 0 300 120" preserveAspectRatio="none"><path class="v-route__base" d="M20 20 C 120 20, 110 60, 150 60 S 180 100, 280 100"/><path class="v-route__flow" d="M20 20 C 120 20, 110 60, 150 60 S 180 100, 280 100"/><circle cx="150" cy="60" r="7"/></svg>
                   <span class="v-node">Pool route</span>
@@ -102,7 +102,7 @@
           <section class="view" data-view="stake" aria-label="Stake" hidden>
             <div class="surface-grid">
               <div class="panel surface">
-                <div class="panel__head"><h2>Stake</h2><span class="pill"><span class="dot dot--iris"></span>Preview</span></div>
+                <div class="panel__head"><h2>Stake</h2><span class="pill"><span class="dot dot--accent"></span>Preview</span></div>
                 <div class="field is-static"><div class="field__top"><span>Stake pool shares</span></div><div class="field__row"><span class="field__ghost">0.0</span><span class="token-chip">KNIX LP</span></div></div>
                 <dl class="pool__facts">
                   <div><dt>Staked</dt><dd>None</dd></div>
@@ -111,8 +111,8 @@
                 </dl>
                 <button type="button" class="btn btn--block btn--ghost" data-pending="Staking contract pending">Staking contract pending</button>
               </div>
-              <div class="panel stage-panel is-live" data-live>
-                <div class="deck__visual v-stake" aria-hidden="true">
+              <div class="panel stage-panel is-live" data-live data-gl-clip>
+                <div class="deck__visual v-stake" aria-hidden="true" data-gl="stake">
                   <div class="v-stake__scene"><span style="--z:0"></span><span style="--z:1"></span><span style="--z:2"></span><span style="--z:3"></span><span style="--z:4"></span><span style="--z:5"></span><span style="--z:6"></span><i class="v-stake__frame"></i></div>
                 </div>
                 <p class="stage-panel__cap">Stake your share. Earn the second stream.</p>
@@ -124,16 +124,16 @@
           <section class="view" data-view="vote" aria-label="Vote" hidden>
             <div class="surface-grid">
               <div class="panel surface">
-                <div class="panel__head"><h2>Proposals</h2><span class="pill"><span class="dot dot--iris"></span>Preview</span></div>
+                <div class="panel__head"><h2>Proposals</h2><span class="pill"><span class="dot dot--accent"></span>Preview</span></div>
                 <div class="empty">
                   <span class="empty__glyph" aria-hidden="true"></span>
                   <b>No proposals yet</b>
                   <span>Governance opens with the Governor contract.</span>
                 </div>
               </div>
-              <div class="panel stage-panel is-live" data-live>
-                <div class="deck__visual v-vote" aria-hidden="true">
-                  <div class="v-vote__card"><span class="pill"><span class="dot dot--iris"></span>Proposal</span><span class="skel skel--lg"></span><span class="skel skel--md"></span><div class="v-vote__choices"><span>For</span><span>Against</span><span>Abstain</span></div><div class="v-vote__quorum"><span>Quorum</span><i></i></div></div>
+              <div class="panel stage-panel is-live" data-live data-gl-clip>
+                <div class="deck__visual v-vote" aria-hidden="true" data-gl="vote">
+                  <div class="v-vote__card"><span class="pill"><span class="dot dot--accent"></span>Proposal</span><span class="skel skel--lg"></span><span class="skel skel--md"></span><div class="v-vote__choices"><span>For</span><span>Against</span><span>Abstain</span></div><div class="v-vote__quorum"><span>Quorum</span><i></i></div></div>
                   <div class="v-vote__card v-vote__card--back"></div>
                 </div>
                 <p class="stage-panel__cap">Stakers steer fees, pairs and upgrades.</p>
@@ -145,7 +145,7 @@
           <section class="view" data-view="agents" aria-label="Agents" hidden>
             <div class="surface-grid">
               <div class="panel surface">
-                <div class="panel__head"><h2>Agent access</h2><span class="pill"><span class="dot dot--iris"></span>Preview</span></div>
+                <div class="panel__head"><h2>Agent access</h2><span class="pill"><span class="dot dot--accent"></span>Preview</span></div>
                 <ul class="checklist">
                   <li><span class="dot"></span>Read pool state<b>Planned surface</b></li>
                   <li><span class="dot"></span>Supply and withdraw<b>Planned surface</b></li>
@@ -153,9 +153,9 @@
                 </ul>
                 <button type="button" class="btn btn--block btn--ghost" data-pending="Agent access pending">Agent access pending</button>
               </div>
-              <div class="panel stage-panel is-live" data-live>
-                <div class="deck__visual v-agents" aria-hidden="true">
-                  <div class="v-agents__orbit"><i></i><i></i><i></i><span class="solid solid--iris v-agents__core" style="--w:44px"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
+              <div class="panel stage-panel is-live" data-live data-gl-clip>
+                <div class="deck__visual v-agents" aria-hidden="true" data-gl="agents">
+                  <div class="v-agents__orbit"><i></i><i></i><i></i><span class="solid solid--accent v-agents__core" style="--w:44px"><i></i><i></i><i></i><i></i><i></i><i></i></span></div>
                   <pre class="v-agents__term"><span>knix.pool</span>.connect()
 <span>watch</span>(range)
 <span>rebalance</span>(onDrift)</pre>
@@ -168,14 +168,14 @@
           <!-- MARKETS -->
           <section class="view" data-view="markets" aria-label="Markets" hidden>
             <div class="panel">
-              <div class="panel__head"><h2>Markets</h2><span class="pill"><span class="dot dot--iris"></span>Preview</span></div>
+              <div class="panel__head"><h2>Markets</h2><span class="pill"><span class="dot dot--accent"></span>Preview</span></div>
               <div class="market-table" role="table" aria-label="Markets">
                 <div class="market-row market-row--head" role="row"><span role="columnheader">Pair</span><span role="columnheader">Liquidity</span><span role="columnheader">Volume</span><span role="columnheader">Status</span></div>
                 <div class="market-row" role="row">
                   <span role="cell" class="market-pair"><span class="pair__coins"><span class="coin coin--sm"><span>K</span></span><span class="coin coin--b coin--sm"><span>E</span></span></span>KNIX/ETH</span>
                   <span role="cell" class="muted">Awaiting pool</span>
                   <span role="cell" class="muted">Awaiting pool</span>
-                  <span role="cell"><span class="pill"><span class="dot dot--iris dot--pulse"></span>Pending</span></span>
+                  <span role="cell"><span class="pill"><span class="dot dot--accent dot--pulse"></span>Pending</span></span>
                 </div>
               </div>
             </div>
@@ -184,7 +184,7 @@
           <!-- ANALYTICS -->
           <section class="view" data-view="analytics" aria-label="Analytics" hidden>
             <div class="panel">
-              <div class="panel__head"><h2>Pool analytics</h2><span class="pill"><span class="dot dot--iris"></span>Preview</span></div>
+              <div class="panel__head"><h2>Pool analytics</h2><span class="pill"><span class="dot dot--accent"></span>Preview</span></div>
               <div class="chart-empty" aria-hidden="true">
                 <svg viewBox="0 0 600 220" preserveAspectRatio="none">
                   <g class="chart-empty__grid"><path d="M0 55H600M0 110H600M0 165H600"/></g>
