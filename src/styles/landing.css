@@ -24,55 +24,18 @@ body::after {
     radial-gradient(40% 40% at 12% 8%, rgba(242, 201, 160, 0.06), transparent 70%),
     linear-gradient(180deg, #090606 0%, #120b0b 100%);
 }
-.hero__sky::after {
-  /* depth grid receding toward the horizon */
-  content: ''; position: absolute; left: -50%; right: -50%; bottom: 8%; height: 60%;
-  background-image:
-    linear-gradient(rgba(255, 122, 134, 0.10) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 122, 134, 0.10) 1px, transparent 1px);
-  background-size: 80px 80px;
-  transform: perspective(700px) rotateX(72deg);
-  transform-origin: 50% 100%;
-  -webkit-mask: linear-gradient(0deg, #000 0%, transparent 85%);
-  mask: linear-gradient(0deg, #000 0%, transparent 85%);
-}
-.hero.is-live .hero__sky::after { animation: grid-drift 14s linear infinite; }
-@keyframes grid-drift { to { background-position: 0 80px, 0 0; } }
-
-.hero__stage {
-  position: absolute; z-index: -1;
-  top: 0; bottom: 0; right: -6vw; width: min(62vw, 1040px);
-}
-.hero__stage canvas, .cta__stage canvas { width: 100% !important; height: 100% !important; opacity: 0; transition: opacity 1400ms var(--ease-out); }
-.hero__stage.is-ready canvas, .cta__stage.is-ready canvas { opacity: 1; }
+.hero__stage { position: absolute; inset: 0; z-index: -1; }
+.hero__stage canvas { width: 100% !important; height: 100% !important; opacity: 0; transition: opacity 1600ms var(--ease-out); }
+.hero__stage.is-ready canvas { opacity: 1; }
 .hero__fallback {
-  position: absolute; inset: 0; display: grid; place-items: center; perspective: 1000px;
-  transition: opacity 1400ms var(--ease-out);
+  /* static stand in for the liquid surface when WebGL is unavailable */
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, transparent 52%, rgba(255, 122, 134, 0.22) 55%, rgba(163, 8, 29, 0.22) 58%, #120305 100%);
+  transition: opacity 1600ms var(--ease-out);
 }
 .hero__stage.is-ready .hero__fallback { opacity: 0; }
-.hero__fallback > span { grid-area: 1 / 1; transform-style: preserve-3d; }
-.hero__fallback-a .solid { transform: rotateX(-24deg) rotateY(38deg); }
-.hero__fallback-b { translate: 130px -120px; }
-.hero__fallback-b .solid { transform: rotateX(-30deg) rotateY(-25deg) rotateZ(12deg); }
-
-.hero__horizon {
-  /* straight light horizon with a glow band above it */
-  position: absolute; z-index: -1; left: 0; right: 0; bottom: 90px; height: 1px;
-  background: linear-gradient(90deg, transparent 0%, rgba(248, 238, 238, 0.75) 50%, transparent 100%);
-  box-shadow: 0 0 24px 1px rgba(255, 122, 134, 0.55);
-}
-.hero__horizon::before {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 260px;
-  background: linear-gradient(0deg, rgba(255, 45, 66, 0.30), rgba(163, 8, 29, 0.10) 45%, transparent);
-  -webkit-mask: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
-  mask: linear-gradient(90deg, transparent, #000 30%, #000 70%, transparent);
-}
-.hero__horizon::after { content: ''; position: absolute; left: 0; right: 0; top: 1px; height: 90px; background: linear-gradient(180deg, #0e0808, var(--bg)); }
-.hero.is-live .hero__horizon { animation: horizon-breathe 7s ease-in-out infinite alternate; }
-@keyframes horizon-breathe {
-  from { opacity: 0.8; }
-  to { opacity: 1; }
-}
+.hero__inner, .hero__meta { position: relative; }
 
 .hero__inner { display: flex; align-items: center; min-height: 0; }
 .hero__content { max-width: 760px; padding-block: clamp(40px, 8vh, 96px) 24px; }
@@ -96,13 +59,9 @@ body::after {
 @keyframes scroll-cue { to { top: 100%; } }
 
 @media (max-width: 960px) {
-  .hero { grid-template-rows: auto 1fr auto; }
-  .hero__stage { position: relative; grid-row: 1; right: auto; width: 100%; height: clamp(300px, 52svh, 520px); margin-top: -12px; }
-  .hero__fallback { scale: 0.7; }
-  .hero__inner { grid-row: 2; align-items: flex-start; }
-  .hero__content { padding-block: 0 16px; margin-top: -40px; }
+  .hero__inner { align-items: flex-start; }
+  .hero__content { padding-block: clamp(24px, 6vh, 56px) 16px; }
   .hero__title { margin-top: 18px; }
-  .hero__meta { grid-row: 3; }
 }
 @media (max-width: 560px) {
   .hero__title { font-size: clamp(54px, 15.5vw, 80px); }
@@ -404,7 +363,6 @@ body::after {
   50% { opacity: 1; transform: translate(-2%, 7%) scale(1.15) rotate(-1deg); }
   100% { opacity: 0.86; transform: translate(-15%, -1%) scale(1.08) rotate(-4deg); }
 }
-.cta__stage { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
 .cta__inner { display: grid; justify-items: center; gap: 0; }
 .cta__title { font-size: clamp(64px, 12vw, 200px); }
 .cta .section__lede { margin-inline: auto; margin-bottom: 36px; }

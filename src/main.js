@@ -123,36 +123,16 @@ function initChainActions() {
   });
 }
 
-/* WebGL object scenes: hero after first paint, CTA when it nears the viewport */
-function loadScenes() {
-  const stages = [...document.querySelectorAll('[data-scene]')];
-  if (!stages.length) return;
-  const probe = document.createElement('canvas');
-  const gl = probe.getContext('webgl2') || probe.getContext('webgl');
-  if (!gl) return;
-  gl.getExtension('WEBGL_lose_context')?.loseContext();
-
-  let modulePromise;
-  const mount = (stage) => {
-    modulePromise ||= import('./three/object-scene.js');
-    modulePromise
-      .then(({ mountObjectScene }) => mountObjectScene(stage, { variant: stage.dataset.scene, reduced: reducedMotion() }))
+/* Hero liquid surface loads after first paint */
+function loadHeroSurface() {
+  const stage = document.querySelector('[data-scene="hero"]');
+  if (!stage) return;
+  const go = () =>
+    import('./three/liquid-scene.js')
+      .then(({ mountLiquidScene }) => mountLiquidScene(stage, { reduced: reducedMotion() }))
       .catch(() => {});
-  };
-
-  stages.forEach((stage) => {
-    if (stage.dataset.scene === 'hero') {
-      if ('requestIdleCallback' in window) requestIdleCallback(() => mount(stage), { timeout: 1200 });
-      else setTimeout(() => mount(stage), 300);
-      return;
-    }
-    const io = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return;
-      io.disconnect();
-      mount(stage);
-    }, { rootMargin: '400px 0px' });
-    io.observe(stage);
-  });
+  if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 1200 });
+  else setTimeout(go, 300);
 }
 
 /* Photographic section renders share one WebGL overlay */
@@ -173,5 +153,5 @@ initMotion();
 initWallet();
 initChainActions();
 watchBlock();
-loadScenes();
+loadHeroSurface();
 loadViews();
