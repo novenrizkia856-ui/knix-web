@@ -5,7 +5,7 @@ import './styles/app.css';
 
 import { mountContractAddress } from './components/contract-address.js';
 import { mountPool } from './components/pool.js';
-import { CONTRACTS, POOL_PAIR } from './config/contracts.js';
+import { CONTRACTS } from './config/contracts.js';
 import { activeNetwork, explorerUrl } from './config/network.js';
 import { isConfiguredAddress, shortAddress } from './lib/address.js';
 import { initMotion, toast } from './lib/motion.js';
@@ -43,10 +43,9 @@ function route(focus) {
 function renderReadiness() {
   const list = document.querySelector('[data-readiness]');
   const rows = [
-    ['Pool', CONTRACTS.POOL_ADDRESS],
-    [`${POOL_PAIR.assetA.symbol} token`, POOL_PAIR.assetA.address],
-    [`${POOL_PAIR.assetB.symbol} token`, POOL_PAIR.assetB.address],
-    ['Router', CONTRACTS.ROUTER_ADDRESS],
+    ['Knix core', CONTRACTS.KNIX_CORE_ADDRESS],
+    ['Knix lens', CONTRACTS.KNIX_LENS_ADDRESS],
+    ['$KNIX token', CONTRACTS.KNIX_TOKEN_ADDRESS],
   ];
   const set = rows.filter(([, a]) => isConfiguredAddress(a)).length;
   list.innerHTML = rows
@@ -66,7 +65,7 @@ function renderRegistry() {
     .map(([key, address]) => {
       const ok = isConfiguredAddress(address);
       if (ok) set += 1;
-      const label = key.replace(/_ADDRESS$/, '').replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\w/g, (c) => c.toUpperCase());
+      const label = key.replace(/^KNIX_/, '').replace(/_ADDRESS$/, '').replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\w/g, (c) => c.toUpperCase());
       return `<li><span class="dot ${ok ? 'dot--warm' : ''}"></span>${label}<b>${ok ? shortAddress(address) : 'Pending'}</b></li>`;
     })
     .join('');
@@ -97,7 +96,7 @@ function initWalletUi() {
     const profile = (k, v) => (document.querySelector(`[data-profile="${k}"]`).textContent = v);
     profile('address', w.connected ? shortAddress(w.account, 10, 8) : 'Not connected');
     profile('network', !w.connected ? 'Not connected' : w.onActiveChain ? activeNetwork.name : `Chain ${w.chainId}`);
-    profile('position', isConfiguredAddress(CONTRACTS.POOL_ADDRESS) ? 'See Pool' : 'Pool pending');
+    profile('position', isConfiguredAddress(CONTRACTS.KNIX_CORE_ADDRESS) ? 'See Pool' : 'Knix pending');
   });
 
   buttons.forEach((b) =>

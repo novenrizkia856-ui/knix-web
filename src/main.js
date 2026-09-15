@@ -42,12 +42,9 @@ function renderRegistry() {
   const list = document.querySelector('[data-registry]');
   if (!list) return;
   const rows = [
-    ['Token', CONTRACTS.KNIX_TOKEN_ADDRESS],
-    ['Pool', CONTRACTS.POOL_ADDRESS],
-    ['Router', CONTRACTS.ROUTER_ADDRESS],
-    ['Vault', CONTRACTS.VAULT_ADDRESS],
-    ['Staking', CONTRACTS.STAKING_ADDRESS],
-    ['Governor', CONTRACTS.GOVERNOR_ADDRESS],
+    ['Knix core', CONTRACTS.KNIX_CORE_ADDRESS],
+    ['Knix lens', CONTRACTS.KNIX_LENS_ADDRESS],
+    ['$KNIX token', CONTRACTS.KNIX_TOKEN_ADDRESS],
   ];
   let live = 0;
   list.innerHTML = rows
