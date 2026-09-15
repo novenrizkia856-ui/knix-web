@@ -165,7 +165,7 @@ export function mountLiquidScene(container, { reduced = false } = {}) {
     camera.aspect = width / height;
     const narrow = camera.aspect < 0.9;
     camera.fov = narrow ? 50 : 34;
-    rig = narrow ? { y: 1.3, targetY: 3.4 } : { y: 1, targetY: 2.05 };
+    rig = narrow ? { y: 1.3, targetY: 3.4 } : { y: 1, targetY: 2.47 };
     camera.updateProjectionMatrix();
     if (!running) render(elapsed);
   };

@@ -143,6 +143,20 @@ function loadViews() {
   else setTimeout(go, 600);
 }
 
+/* CTA silk loads when the section nears the viewport */
+function loadCtaSilk() {
+  const stage = document.querySelector('[data-silk]');
+  if (!stage || !('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(([entry]) => {
+    if (!entry.isIntersecting) return;
+    io.disconnect();
+    import('./three/silk-scene.js')
+      .then(({ mountSilk }) => mountSilk(stage, { reduced: reducedMotion() }))
+      .catch(() => {});
+  }, { rootMargin: '600px 0px' });
+  io.observe(stage);
+}
+
 renderNetworkFacts();
 renderRegistry();
 initNav();
@@ -155,3 +169,4 @@ initChainActions();
 watchBlock();
 loadHeroSurface();
 loadViews();
+loadCtaSilk();
