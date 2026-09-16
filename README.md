@@ -56,12 +56,13 @@ at the top of the file.
 WalletConnect QR and mobile wallets, with a network switch to Robinhood Chain. AppKit loads on the
 app page after first paint, and on the landing only when the Pool card nears the viewport.
 
-Without a project id the store falls back to the injected browser wallet (`window.ethereum`).
+The Knix project id (`ff24e7c4e7d10744e3ccd080e4307cad`) is set in `src/config/wallet.js`, so builds
+work without extra setup. `VITE_WALLETCONNECT_PROJECT_ID` overrides it. Without any project id the
+store falls back to the injected browser wallet (`window.ethereum`).
 
-1. Create a project at [dashboard.reown.com](https://dashboard.reown.com) and copy its project id.
-2. Put it in `.env` locally and in the Vercel project settings for production.
-3. In the Reown dashboard, add every domain the site runs on (production domain, `*.vercel.app`
-   previews if you use them) to the allowlist. Unlisted domains get a 403 and an empty wallet list.
+In the [Reown dashboard](https://dashboard.reown.com), add every domain the site runs on (production
+domain, `*.vercel.app` previews if you use them) to the project allowlist. Unlisted domains get a 403
+and an empty wallet list.
 
 ## Deploy on Vercel
 
@@ -71,7 +72,7 @@ Without a project id the store falls back to the injected browser wallet (`windo
 
    | Name | Value |
    | --- | --- |
-   | `VITE_WALLETCONNECT_PROJECT_ID` | your Reown project id |
+   | `VITE_WALLETCONNECT_PROJECT_ID` | optional, the Knix id is already in config |
    | `VITE_KNIX_NETWORK` | `mainnet` (default, optional) |
    | `VITE_RPC_URL_MAINNET` | optional managed RPC; the public one is rate limited |
 
