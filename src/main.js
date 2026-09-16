@@ -113,7 +113,12 @@ function initChainActions() {
   const btn = document.querySelector('[data-add-network]');
   if (!btn) return;
   let wallet;
-  subscribeWallet((w) => (wallet = w));
+  let lastError = '';
+  subscribeWallet((w) => {
+    wallet = w;
+    if (w.error && w.error !== lastError) toast(w.error, { anchor: btn });
+    lastError = w.error;
+  });
   btn.addEventListener('click', () => {
     if (!wallet?.available) return toast('No wallet detected', { anchor: btn });
     switchToActiveNetwork();
@@ -161,7 +166,7 @@ mountContractAddress();
 mountPool();
 initDeck();
 initMotion();
-initWallet();
+initWallet({ eager: false });
 initChainActions();
 watchBlock();
 loadHeroSurface();

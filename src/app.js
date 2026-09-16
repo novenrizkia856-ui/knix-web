@@ -78,8 +78,11 @@ function initWalletUi() {
   const netDot = document.querySelector('[data-net-dot]');
   let state;
 
+  let lastError = '';
   subscribeWallet((w) => {
     state = w;
+    if (w.error && w.error !== lastError) toast(w.error);
+    lastError = w.error;
     let label = 'Connect wallet';
     if (w.connecting) label = 'Waiting for wallet';
     else if (w.connected && !w.onActiveChain) label = 'Switch network';

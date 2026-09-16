@@ -1,9 +1,9 @@
 /**
  * Knix contract client.
  *
- * Reads go to the public RPC (no wallet needed). Writes go through the connected
- * EIP-1193 wallet. Calldata is encoded by hand: the contract surface is small and
- * this keeps the bundle free of a web3 library.
+ * Reads go to the public RPC (no wallet needed). Writes go through the wallet
+ * store (Reown AppKit or the injected wallet). Calldata is encoded by hand: the
+ * contract surface is small and reads never need a web3 library.
  *
  * Selectors below were taken from the deployed contracts with `cast sig`.
  */
@@ -11,7 +11,7 @@ import { CONTRACTS } from '../config/contracts.js';
 import { activeNetwork } from '../config/network.js';
 import { isConfiguredAddress } from './address.js';
 import { rpcCall } from './rpc.js';
-import { getWalletState } from './wallet.js';
+import { getWalletState, sendTransaction } from './wallet.js';
 
 const SEL = {
   deposit: '0x0efe6a8b', // deposit(address,uint256,uint256)
@@ -165,28 +165,21 @@ export const readAllowance = (token, owner) =>
 
 /* ───────── writes (wallet) ───────── */
 
-function provider() {
-  const eth = typeof window !== 'undefined' ? window.ethereum : undefined;
-  if (!eth) throw new Error('No wallet detected');
-  return eth;
-}
-
-async function send({ to, data, value = 0n }) {
-  const eth = provider();
+async function send(tx) {
   const { account, onActiveChain } = getWalletState();
   if (!account) throw new Error('Connect a wallet first');
   if (!onActiveChain) throw new Error(`Switch to ${activeNetwork.name}`);
-  const tx = { from: account, to, data };
-  if (value > 0n) tx.value = `0x${value.toString(16)}`;
-  return eth.request({ method: 'eth_sendTransaction', params: [tx] });
+  return sendTransaction(tx);
 }
 
-/** Wait for a receipt. Resolves with it, or throws when the transaction reverted. */
-export async function waitForTx(hash, { timeout = 120_000, interval = 2_000 } = {}) {
-  const eth = provider();
+/**
+ * Wait for a receipt on the public RPC (WalletConnect sessions do not reliably
+ * relay reads). Resolves with it, or throws when the transaction reverted.
+ */
+export async function waitForTx(hash, { timeout = 180_000, interval = 1_500 } = {}) {
   const deadline = Date.now() + timeout;
   while (Date.now() < deadline) {
-    const receipt = await eth.request({ method: 'eth_getTransactionReceipt', params: [hash] }).catch(() => null);
+    const receipt = await rpcCall('eth_getTransactionReceipt', [hash]);
     if (receipt) {
       if (receipt.status && BigInt(receipt.status) === 0n) throw new Error('Transaction reverted');
       return receipt;
@@ -210,17 +203,50 @@ export const requestWithdrawal = (id) => send({ to: CORE, data: SEL.requestWithd
 export const cancelWithdrawal = (id) => send({ to: CORE, data: SEL.cancelWithdrawal + encUint(id) });
 export const finalizeWithdrawal = (id) => send({ to: CORE, data: SEL.finalizeWithdrawal + encUint(id) });
 
-/** Wallet errors are verbose; surface something a person can read. */
+/** Knix custom errors by selector, for wallets that only return raw revert data. */
+const ERRORS = {
+  '0x1f2a2005': 'Amount must be above zero',
+  '0xc3034e82': 'Cooldown is outside the allowed range',
+  '0xb5c74a27': 'The token moved nothing on transfer',
+  '0x30cd7471': 'That position belongs to another wallet',
+  '0x80cb55e2': 'Position is not active',
+  '0x7dc6505a': 'No withdrawal queued for that position',
+  '0xdbe9008d': 'Already unlocked, finalize it instead',
+  '0x16b82bbe': 'Still locked, try again after the unlock time',
+  '0x6d963f88': 'The tip transfer failed',
+};
+
+const NAMED = {
+  ZeroAmount: ERRORS['0x1f2a2005'],
+  InvalidCooldown: ERRORS['0xc3034e82'],
+  NothingReceived: ERRORS['0xb5c74a27'],
+  NotOwner: ERRORS['0x30cd7471'],
+  NotActive: ERRORS['0x80cb55e2'],
+  NotPending: ERRORS['0x7dc6505a'],
+  AlreadyUnlocked: ERRORS['0xdbe9008d'],
+  StillLocked: ERRORS['0x16b82bbe'],
+  EthTransferFailed: ERRORS['0x6d963f88'],
+};
+
+/** Wallet errors are verbose and nested; surface something a person can read. */
 export function describeError(error) {
-  const message = error?.data?.message || error?.message || 'Transaction failed';
-  if (error?.code === 4001 || /user rejected/i.test(message)) return 'Request declined';
-  if (/insufficient funds/i.test(message)) return 'Not enough ETH for gas';
-  if (/NotOwner/.test(message)) return 'That position belongs to another wallet';
-  if (/NotActive/.test(message)) return 'Position is not active';
-  if (/NotPending/.test(message)) return 'No withdrawal queued for that position';
-  if (/StillLocked/.test(message)) return 'Still locked, try again after the unlock time';
-  if (/AlreadyUnlocked/.test(message)) return 'Already unlocked, finalize it instead';
-  if (/InvalidCooldown/.test(message)) return 'Cooldown is outside the allowed range';
-  if (/NothingReceived/.test(message)) return 'The token moved nothing on transfer';
+  const chain = [];
+  for (let e = error, depth = 0; e && depth < 8; e = e.cause, depth += 1) chain.push(e);
+  const text = chain
+    .flatMap((e) => [e.shortMessage, e.details, e.message, e.data?.message, typeof e.data === 'string' ? e.data : e.data?.data])
+    .filter((v) => typeof v === 'string')
+    .join(' | ');
+
+  if (chain.some((e) => e.code === 4001 || e.name === 'UserRejectedRequestError') || /user (rejected|denied)|rejected the request/i.test(text)) {
+    return 'Request declined';
+  }
+  if (/insufficient funds/i.test(text)) return 'Not enough ETH for gas';
+  const selector = text.match(/0x[0-9a-f]{8}/gi)?.find((s) => ERRORS[s.toLowerCase()]);
+  if (selector) return ERRORS[selector.toLowerCase()];
+  const named = Object.keys(NAMED).find((name) => text.includes(name));
+  if (named) return NAMED[named];
+  if (chain.some((e) => e.name === 'ConnectorNotConnectedError')) return 'Connect a wallet first';
+
+  const message = error?.shortMessage || error?.message || 'Transaction failed';
   return message.length > 140 ? `${message.slice(0, 140)}…` : message;
 }

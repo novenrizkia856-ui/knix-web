@@ -13,7 +13,7 @@ import { activeNetwork, explorerUrl } from '../config/network.js';
 import { shortAddress } from '../lib/address.js';
 import * as knix from '../lib/knix.js';
 import { toast } from '../lib/motion.js';
-import { connectWallet, initWallet, subscribeWallet, switchToActiveNetwork } from '../lib/wallet.js';
+import { connectWallet, initWallet, preloadWallet, subscribeWallet, switchToActiveNetwork } from '../lib/wallet.js';
 
 const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>';
 const STATUS_LABEL = ['Locked', 'Queued', 'Closed'];
@@ -548,8 +548,11 @@ export function mountPool(root = document) {
 
   /* ───────── wiring ───────── */
   let lastKey = '';
+  let lastError = '';
   subscribeWallet(async (wallet) => {
     state.wallet = wallet;
+    if (wallet.error && wallet.error !== lastError) note.textContent = wallet.error;
+    lastError = wallet.error;
     update();
     const key = `${wallet.account}:${wallet.chainId}`;
     if (key === lastKey) return;
@@ -572,6 +575,17 @@ export function mountPool(root = document) {
     }, 30_000);
   }
 
-  initWallet();
+  // The app page restores sessions eagerly; on the landing the wallet loads once the pool is near.
+  initWallet({ eager: false });
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      io.disconnect();
+      preloadWallet();
+    }, { rootMargin: '400px 0px' });
+    io.observe(host);
+  } else {
+    preloadWallet();
+  }
   update();
 }
