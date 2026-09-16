@@ -52,7 +52,7 @@ at the top of the file.
 
 ### Wallets
 
-`src/lib/wallet.js` uses Reown AppKit when `VITE_WALLETCONNECT_PROJECT_ID` is set: browser extensions,
+`src/lib/wallet.js` uses Reown AppKit whenever a project id is configured: browser extensions,
 WalletConnect QR and mobile wallets, with a network switch to Robinhood Chain. AppKit loads on the
 app page after first paint, and on the landing only when the Pool card nears the viewport.
 
