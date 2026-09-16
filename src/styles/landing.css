@@ -246,8 +246,18 @@ body::after {
 .stream p { margin-top: 6px; font-size: 14.5px; color: var(--ink-3); }
 
 @media (max-width: 960px) {
-  .twofold__grid { grid-template-columns: minmax(0, 1fr); }
-  .twofold__visual { order: 2; height: clamp(340px, 90vw, 480px); }
+  .twofold__grid { grid-template-columns: minmax(0, 1fr); gap: 28px; }
+  /* Visual stacks below the copy: the render gets its own box and the legend sits under it, never on it */
+  .twofold__visual { order: 2; height: auto; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .twofold__gl { position: relative; inset: auto; width: 100%; height: clamp(300px, 84vw, 440px); }
+  .twofold__legend { position: static; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 22px; }
+  /* The sweeping rays cross the cards on a single column; a soft glow behind the render replaces them */
+  .twofold__rays { display: none; }
+  .twofold__visual::before {
+    content: ''; position: absolute; left: 50%; top: 42%; width: 130%; aspect-ratio: 1.4; z-index: -1; pointer-events: none;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(closest-side, rgba(255, 45, 66, 0.2), rgba(255, 45, 66, 0.06) 55%, transparent 100%);
+  }
 }
 @media (max-width: 480px) { .streams { grid-template-columns: 1fr; } }
 
