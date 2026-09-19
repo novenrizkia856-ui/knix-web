@@ -47,7 +47,7 @@ function template() {
   <article class="pool" aria-label="Knix position">
     <header class="pool__head">
       <div class="pair">
-        <span class="pair__coins"><span class="coin" aria-hidden="true"><span>K</span></span></span>
+        <span class="pair__coins"><span class="coin" aria-hidden="true"><svg class="coin__glyph" viewBox="0 0 1000 897.7" aria-hidden="true" focusable="false"><path d="M0 0 255.4 0 255.4 205.3 0 452.8Z"/><path d="M645.2 0 1000 0 372.7 636.6 1000 637.3 1000 897.7 0 897.7 0 649.5Z"/></svg></span></span>
         <div>
           <h3 class="pair__name">Lock a position</h3>
           <p class="pair__meta">${activeNetwork.name}</p>

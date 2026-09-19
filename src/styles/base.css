@@ -28,6 +28,8 @@
   --accent-deep: #a3081d;
   --accent-ink: #170507;
   --warm: #f2c9a0;
+  /* Brand green, from the Knix logo files in public/brand */
+  --brand: #70f250;
   --accent-a12: rgba(255, 45, 66, 0.12);
   --accent-a24: rgba(255, 45, 66, 0.24);
 
@@ -179,7 +181,14 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
 .nav.is-scrolled::before { opacity: 1; }
 .nav.is-hidden { transform: translateY(-100%); }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: 0.14em; font-size: 14px; }
-.brand__mark { width: 30px; height: 30px; }
+.brand__mark { width: 28px; height: auto; fill: currentColor; }
+/* Official lockup: brand green mark, wordmark in the page ink */
+.brand__lockup { width: 104px; height: auto; display: block; }
+.brand__glyph { fill: var(--brand); }
+.brand__word { fill: currentColor; }
+.brand--footer .brand__lockup { width: 150px; }
+.coin__glyph { width: 46%; height: auto; fill: var(--accent-ink); filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.35)); }
+.coin--b .coin__glyph { fill: #3c2f2f; }
 .nav__links { display: flex; gap: 4px; padding: 5px; border-radius: 999px; background: rgba(255,255,255,0.025); box-shadow: var(--pearl-edge); }
 .nav__links a {
   position: relative; padding: 8px 14px; border-radius: 999px;

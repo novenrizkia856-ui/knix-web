@@ -81,6 +81,22 @@ and an empty wallet list.
 `vercel.json` also serves `/app` without the `.html` suffix, caches hashed assets for a year, and
 sends `nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY` and a restrictive `Permissions-Policy`.
 
+## Brand assets
+
+Source art lives in `public/brand`, traced from the supplied logo files (mark 99.8% and lockup 98.5%
+overlap with the originals, so they are pixel faithful at any size).
+
+| File | Use |
+| --- | --- |
+| `knix-mark.svg`, `knix-lockup.svg` | inlined in the pages, coloured through `currentColor` |
+| `knix-mark-green.svg`, `knix-mark-dark.svg`, `knix-lockup-green.svg`, `knix-lockup-dark.svg` | fixed colour copies for partners and listings |
+| `knix-mark-green-512.png`, `knix-mark-white-512.png`, `knix-lockup-green-1024.png`, `knix-lockup-white-1024.png` | transparent raster exports |
+| `apple-touch-icon.png`, `icon-192.png`, `icon-512.png` | home screen and manifest icons |
+| `/favicon.svg`, `/og-image.jpg` | browser tab and social card |
+
+Brand colours: green `#70f250` (token `--brand`), deep green `#023a21`. The site accent stays red;
+the logo glyph is the one green element, the wordmark follows the page ink.
+
 ## Structure
 
 ```
