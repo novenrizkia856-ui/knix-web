@@ -1,34 +1,31 @@
 /**
- * Reown AppKit setup. Loaded lazily by wallet.js so the landing page stays light.
- * Covers browser extensions (EIP-6963), WalletConnect QR and mobile deep links.
+ * Reown AppKit setup for Solana. Loaded lazily by wallet.js so the landing page stays light.
+ * Covers Wallet Standard browser wallets (Phantom, Solflare, Backpack), WalletConnect QR
+ * and mobile deep links. Used for connection only: send, swap and onramp are switched off.
  */
-import { WagmiAdapter } from '@reown/appkit-adapter-wagmi';
+import { SolanaAdapter } from '@reown/appkit-adapter-solana';
 import { createAppKit } from '@reown/appkit';
-import { defineChain } from '@reown/appkit/networks';
-import { http } from '@wagmi/core';
-import { activeNetwork } from '../config/network.js';
+import { solana, solanaDevnet } from '@reown/appkit/networks';
+import { activeNetwork } from '../config/solana.js';
 import { APP_METADATA, WALLETCONNECT_PROJECT_ID } from '../config/wallet.js';
 
-export const network = defineChain({
-  id: activeNetwork.chainId,
-  caipNetworkId: `eip155:${activeNetwork.chainId}`,
-  chainNamespace: 'eip155',
-  name: activeNetwork.name,
-  nativeCurrency: activeNetwork.nativeCurrency,
-  rpcUrls: { default: { http: [activeNetwork.rpcUrl] } },
-  blockExplorers: activeNetwork.blockExplorerUrl
-    ? { default: { name: 'Blockscout', url: activeNetwork.blockExplorerUrl } }
-    : undefined,
-  testnet: activeNetwork.testnet,
-});
+// Reown wallet registry ids, shown first in the connect modal.
+const FEATURED_WALLETS = [
+  'a797aa35c0fadbfc1a53e7f675162ed5226968b44a19ee3d24385c64d1d3c393', // Phantom
+  '1ca0bdd4747578705b1939af023d120677c64fe6ca76add81fda36e350605e79', // Solflare
+  '2bd8c14e035c2d48f184aaa168559e86b0e3433228d3c4075900a221785019b0', // Backpack
+];
 
-export const adapter = new WagmiAdapter({
-  projectId: WALLETCONNECT_PROJECT_ID,
-  networks: [network],
-  transports: { [network.id]: http(activeNetwork.rpcUrl) },
-});
+const cluster = activeNetwork.testnet ? solanaDevnet : solana;
 
-export const wagmiConfig = adapter.wagmiConfig;
+// AppKit keys its own RPC with the project id; a custom endpoint from config replaces it.
+export const network = {
+  ...cluster,
+  ...(activeNetwork.customRpc ? { rpcUrls: { default: { http: [activeNetwork.rpcUrl] } } } : {}),
+  blockExplorers: { default: { name: 'Solana Explorer', url: activeNetwork.explorerUrl } },
+};
+
+export const adapter = new SolanaAdapter();
 
 export const modal = createAppKit({
   adapters: [adapter],
@@ -36,6 +33,7 @@ export const modal = createAppKit({
   networks: [network],
   defaultNetwork: network,
   metadata: { ...APP_METADATA, url: window.location.origin, icons: APP_METADATA.icons.map((p) => new URL(p, window.location.origin).href) },
+  featuredWalletIds: FEATURED_WALLETS,
   themeMode: 'dark',
   themeVariables: {
     '--w3m-accent': '#ff2d42',

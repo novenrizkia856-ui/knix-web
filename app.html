@@ -4,9 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Knix App | Pool</title>
-    <meta name="description" content="Lock a position and manage withdrawals on Knix, live on Robinhood Chain." />
+    <meta name="description" content="Lock a position and manage withdrawals on Knix, built on Solana." />
     <meta property="og:title" content="Knix App" />
-    <meta property="og:description" content="Lock a position and manage withdrawals on Knix, live on Robinhood Chain." />
+    <meta property="og:description" content="Lock a position and manage withdrawals on Knix, built on Solana." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta property="og:url" content="https://knix.cash/app" />
     <meta property="og:image" content="https://knix.cash/og-image.jpg" />
@@ -71,7 +71,7 @@
                 <div class="panel">
                   <div class="panel__head"><h2>How it settles</h2></div>
                   <ol class="flow">
-                    <li><b>Lock</b><span>Approve once, then lock</span></li>
+                    <li><b>Lock</b><span>One signature to lock</span></li>
                     <li><b>Request</b><span>Instant while the market is open</span></li>
                     <li><b>Wait</b><span>Cooldown or next open, cancellable</span></li>
                     <li><b>Finalize</b><span>Anyone can release it to you</span></li>
@@ -88,15 +88,15 @@
                 <div class="panel__head"><h2>Swap</h2><span class="pill"><span class="dot dot--accent"></span>Preview</span></div>
                 <div class="field is-static"><div class="field__top"><span>Sell</span></div><div class="field__row"><span class="field__ghost">0.0</span><span class="token-chip"><span class="coin coin--sm"><svg class="coin__glyph" viewBox="0 0 1000 897.7" aria-hidden="true" focusable="false"><path d="M0 0 255.4 0 255.4 205.3 0 452.8Z"/><path d="M645.2 0 1000 0 372.7 636.6 1000 637.3 1000 897.7 0 897.7 0 649.5Z"/></svg></span>KNIX</span></div></div>
                 <span class="swap-flip" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5v14l-3-3M16 19V5l3 3"/></svg></span>
-                <div class="field is-static"><div class="field__top"><span>Buy</span></div><div class="field__row"><span class="field__ghost">0.0</span><span class="token-chip"><span class="coin coin--b coin--sm"><span>E</span></span>ETH</span></div></div>
-                <button type="button" class="btn btn--block btn--ghost" data-pending="Router contract pending">Router contract pending</button>
+                <div class="field is-static"><div class="field__top"><span>Buy</span></div><div class="field__row"><span class="field__ghost">0.0</span><span class="token-chip"><span class="coin coin--b coin--sm"><span>S</span></span>SOL</span></div></div>
+                <button type="button" class="btn btn--block btn--ghost" data-pending="Router program pending">Router program pending</button>
               </div>
               <div class="panel stage-panel is-live" data-live data-gl-clip>
                 <div class="deck__visual v-swap" aria-hidden="true" data-gl="swap">
                   <div class="v-row"><span class="coin coin--sm"><svg class="coin__glyph" viewBox="0 0 1000 897.7" aria-hidden="true" focusable="false"><path d="M0 0 255.4 0 255.4 205.3 0 452.8Z"/><path d="M645.2 0 1000 0 372.7 636.6 1000 637.3 1000 897.7 0 897.7 0 649.5Z"/></svg></span><b>KNIX</b><span class="skel"></span></div>
                   <svg class="v-route" viewBox="0 0 300 120" preserveAspectRatio="none"><path class="v-route__base" d="M20 20 C 120 20, 110 60, 150 60 S 180 100, 280 100"/><path class="v-route__flow" d="M20 20 C 120 20, 110 60, 150 60 S 180 100, 280 100"/><circle cx="150" cy="60" r="7"/></svg>
                   <span class="v-node">Pool route</span>
-                  <div class="v-row"><span class="coin coin--b coin--sm"><span>E</span></span><b>ETH</b><span class="skel"></span></div>
+                  <div class="v-row"><span class="coin coin--b coin--sm"><span>S</span></span><b>SOL</b><span class="skel"></span></div>
                 </div>
                 <p class="stage-panel__cap">Routes settle through the Knix Pool.</p>
               </div>
@@ -114,7 +114,7 @@
                   <div><dt>Rewards</dt><dd>Pending</dd></div>
                   <div><dt>Vote weight</dt><dd>None</dd></div>
                 </dl>
-                <button type="button" class="btn btn--block btn--ghost" data-pending="Staking contract pending">Staking contract pending</button>
+                <button type="button" class="btn btn--block btn--ghost" data-pending="Staking program pending">Staking program pending</button>
               </div>
               <div class="panel stage-panel is-live" data-live data-gl-clip>
                 <div class="deck__visual v-stake" aria-hidden="true" data-gl="stake">
@@ -133,7 +133,7 @@
                 <div class="empty">
                   <span class="empty__glyph" aria-hidden="true"></span>
                   <b>No proposals yet</b>
-                  <span>Governance opens with the Governor contract.</span>
+                  <span>Governance opens with the governance program.</span>
                 </div>
               </div>
               <div class="panel stage-panel is-live" data-live data-gl-clip>
@@ -177,7 +177,7 @@
               <div class="market-table" role="table" aria-label="Markets">
                 <div class="market-row market-row--head" role="row"><span role="columnheader">Pair</span><span role="columnheader">Liquidity</span><span role="columnheader">Volume</span><span role="columnheader">Status</span></div>
                 <div class="market-row" role="row">
-                  <span role="cell" class="market-pair"><span class="pair__coins"><span class="coin coin--sm"><svg class="coin__glyph" viewBox="0 0 1000 897.7" aria-hidden="true" focusable="false"><path d="M0 0 255.4 0 255.4 205.3 0 452.8Z"/><path d="M645.2 0 1000 0 372.7 636.6 1000 637.3 1000 897.7 0 897.7 0 649.5Z"/></svg></span><span class="coin coin--b coin--sm"><span>E</span></span></span>KNIX/ETH</span>
+                  <span role="cell" class="market-pair"><span class="pair__coins"><span class="coin coin--sm"><svg class="coin__glyph" viewBox="0 0 1000 897.7" aria-hidden="true" focusable="false"><path d="M0 0 255.4 0 255.4 205.3 0 452.8Z"/><path d="M645.2 0 1000 0 372.7 636.6 1000 637.3 1000 897.7 0 897.7 0 649.5Z"/></svg></span><span class="coin coin--b coin--sm"><span>S</span></span></span>KNIX/SOL</span>
                   <span role="cell" class="muted">Awaiting pool</span>
                   <span role="cell" class="muted">Awaiting pool</span>
                   <span role="cell"><span class="pill"><span class="dot dot--accent dot--pulse"></span>Pending</span></span>
@@ -212,14 +212,16 @@
               <div class="panel surface">
                 <div class="panel__head"><h2>Wallet</h2></div>
                 <dl class="spec-list">
-                  <div><dt>Address</dt><dd class="mono" data-profile="address">Not connected</dd></div>
+                  <div><dt>Public key</dt><dd class="mono"><button type="button" data-profile="address" data-copy-key>Not connected</button></dd></div>
                   <div><dt>Network</dt><dd data-profile="network">Not connected</dd></div>
+                  <div><dt>SOL balance</dt><dd data-profile="balance">Not connected</dd></div>
+                  <div data-profile-token><dt>$KNIX balance</dt><dd data-profile="token">Not connected</dd></div>
                   <div><dt>Pool position</dt><dd data-profile="position">None</dd></div>
                 </dl>
                 <button type="button" class="btn btn--block btn--primary" data-wallet>Connect wallet</button>
               </div>
               <div class="panel">
-                <div class="panel__head"><h2>Contracts</h2><span class="pill" data-registry-count></span></div>
+                <div class="panel__head"><h2>Accounts</h2><span class="pill" data-registry-count></span></div>
                 <ul class="checklist" data-registry></ul>
               </div>
             </div>

@@ -6,12 +6,11 @@ import './styles/landing.css';
 import { mountContractAddress } from './components/contract-address.js';
 import { initNav } from './components/nav.js';
 import { mountPool } from './components/pool.js';
-import { CONTRACTS } from './config/contracts.js';
-import { activeNetwork, explorerUrl } from './config/network.js';
-import { isConfiguredAddress, shortAddress } from './lib/address.js';
+import { ACCOUNTS, activeNetwork, explorerUrl } from './config/solana.js';
+import { isConfiguredAddress, shortAddress, writeClipboard } from './lib/address.js';
 import { initMotion, reducedMotion, toast } from './lib/motion.js';
-import { latestBlock } from './lib/rpc.js';
-import { initWallet, subscribeWallet, switchToActiveNetwork } from './lib/wallet.js';
+import { latestSlot } from './lib/rpc.js';
+import { connectWallet, initWallet, subscribeWallet } from './lib/wallet.js';
 
 /* Network facts, always from config */
 function renderNetworkFacts() {
@@ -24,27 +23,28 @@ function renderNetworkFacts() {
   })();
   const facts = {
     name: activeNetwork.name,
-    chainId: String(activeNetwork.chainId),
-    gas: activeNetwork.nativeCurrency.symbol,
+    cluster: activeNetwork.clusterLabel,
+    symbol: activeNetwork.nativeCurrency.symbol,
     rpcHost: host,
   };
   document.querySelectorAll('[data-net]').forEach((el) => (el.textContent = facts[el.dataset.net] ?? ''));
+  const explorer = activeNetwork.key === 'mainnet-beta' ? activeNetwork.explorerUrl : `${activeNetwork.explorerUrl}/?cluster=${activeNetwork.key}`;
   document.querySelectorAll('[data-net-explorer]').forEach((a) => {
-    if (activeNetwork.blockExplorerUrl) a.href = activeNetwork.blockExplorerUrl;
+    if (activeNetwork.explorerUrl) a.href = explorer;
     else a.hidden = true;
   });
   const year = document.querySelector('[data-year]');
   if (year) year.textContent = new Date().getFullYear();
 }
 
-/* Contract registry mirrors config; nothing is invented */
+/* Account registry mirrors config; nothing is invented */
 function renderRegistry() {
   const list = document.querySelector('[data-registry]');
   if (!list) return;
   const rows = [
-    ['Knix core', CONTRACTS.KNIX_CORE_ADDRESS],
-    ['Knix lens', CONTRACTS.KNIX_LENS_ADDRESS],
-    ['$KNIX token', CONTRACTS.KNIX_TOKEN_ADDRESS],
+    ['Knix program', ACCOUNTS.PROGRAM_ID],
+    ['$KNIX mint', ACCOUNTS.TOKEN_MINT],
+    ['Treasury', ACCOUNTS.TREASURY_ADDRESS],
   ];
   let live = 0;
   list.innerHTML = rows
@@ -62,19 +62,19 @@ function renderRegistry() {
 }
 
 /* Real read from the public RPC, degrades quietly */
-function watchBlock() {
-  const out = document.querySelector('[data-block]');
-  const dot = document.querySelector('[data-block-dot]');
+function watchSlot() {
+  const out = document.querySelector('[data-slot]');
+  const dot = document.querySelector('[data-slot-dot]');
   const section = document.querySelector('#chain');
   if (!out || !section) return;
   let timer = 0;
   const tick = async () => {
-    const block = await latestBlock();
-    if (block == null) {
+    const slot = await latestSlot();
+    if (slot == null) {
       out.textContent = 'Unavailable';
       dot.className = 'dot';
     } else {
-      out.textContent = block.toLocaleString('en-US');
+      out.textContent = slot.toLocaleString('en-US');
       dot.className = 'dot dot--warm';
     }
   };
@@ -109,8 +109,9 @@ function initDeck() {
   activate(0);
 }
 
+/* Connect a Solana wallet; once connected the button copies the public key */
 function initChainActions() {
-  const btn = document.querySelector('[data-add-network]');
+  const btn = document.querySelector('[data-connect-wallet]');
   if (!btn) return;
   let wallet;
   let lastError = '';
@@ -118,10 +119,14 @@ function initChainActions() {
     wallet = w;
     if (w.error && w.error !== lastError) toast(w.error, { anchor: btn });
     lastError = w.error;
+    btn.textContent = w.connected ? shortAddress(w.account) : w.connecting ? 'Waiting for wallet' : 'Connect wallet';
+    btn.title = w.connected ? `${w.account} (click to copy)` : '';
   });
-  btn.addEventListener('click', () => {
-    if (!wallet?.available) return toast('No wallet detected', { anchor: btn });
-    switchToActiveNetwork();
+  btn.addEventListener('click', async () => {
+    if (!wallet?.available) return toast('No Solana wallet detected', { anchor: btn });
+    if (!wallet.connected) return connectWallet();
+    const ok = await writeClipboard(wallet.account);
+    toast(ok ? 'Public key copied' : 'Copy failed', { anchor: btn, tone: ok ? 'success' : undefined });
   });
 }
 
@@ -168,7 +173,7 @@ initDeck();
 initMotion();
 initWallet({ eager: false });
 initChainActions();
-watchBlock();
+watchSlot();
 loadHeroSurface();
 loadViews();
 loadCtaSilk();

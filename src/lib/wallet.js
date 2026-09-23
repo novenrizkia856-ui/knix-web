@@ -1,14 +1,14 @@
 /**
- * Wallet store.
+ * Wallet store for Solana.
  *
  * With a WalletConnect project id (src/config/wallet.js) connections go through
- * Reown AppKit: browser extensions, WalletConnect QR and mobile wallets. AppKit is
- * loaded lazily. Without a project id the store falls back to the injected
- * EIP-1193 wallet (window.ethereum).
+ * Reown AppKit: Phantom, Solflare, Backpack and any Wallet Standard wallet, plus
+ * WalletConnect QR and mobile wallets. AppKit is loaded lazily. Without a project
+ * id the store falls back to the injected Solana provider.
  *
- * Real wallet interaction only: connect, chain detection, network switching, sending.
+ * Connection only: connect, disconnect, the public key. This store exposes no way
+ * to sign or send a transaction.
  */
-import { activeNetwork, chainIdHex } from '../config/network.js';
 import { WALLETCONNECT_PROJECT_ID } from '../config/wallet.js';
 
 const listeners = new Set();
@@ -16,13 +16,15 @@ const listeners = new Set();
 const state = {
   available: false,
   account: '',
-  chainId: 0,
   connecting: false,
   error: '',
 };
 
 const kitEnabled = Boolean(WALLETCONNECT_PROJECT_ID);
-const injected = () => (typeof window !== 'undefined' ? window.ethereum : undefined);
+const injected = () =>
+  typeof window === 'undefined'
+    ? undefined
+    : window.phantom?.solana || window.solflare || window.backpack || window.solana;
 
 function emit() {
   const snapshot = getWalletState();
@@ -35,11 +37,7 @@ function set(patch) {
 }
 
 export function getWalletState() {
-  return {
-    ...state,
-    connected: Boolean(state.account),
-    onActiveChain: state.chainId === activeNetwork.chainId,
-  };
+  return { ...state, connected: Boolean(state.account) };
 }
 
 export function subscribeWallet(fn) {
@@ -55,13 +53,16 @@ let kitPromise = null;
 
 function loadKit() {
   if (!kitPromise) {
-    kitPromise = Promise.all([import('./appkit.js'), import('@wagmi/core')])
-      .then(([appkit, core]) => {
-        kit = { ...appkit, core };
+    kitPromise = import('./appkit.js')
+      .then((appkit) => {
+        kit = appkit;
         const sync = (account) =>
-          set({ account: account.address || '', chainId: account.chainId || 0 });
-        sync(core.getAccount(appkit.wagmiConfig));
-        core.watchAccount(appkit.wagmiConfig, { onChange: sync });
+          set({
+            account: account?.isConnected ? account.address || '' : '',
+            connecting: account?.status === 'connecting' || (state.connecting && !account?.isConnected),
+          });
+        sync(appkit.modal.getAccount('solana'));
+        appkit.modal.subscribeAccount(sync, 'solana');
         appkit.modal.subscribeState(({ open }) => set({ connecting: Boolean(open) && !state.account }));
         return kit;
       })
@@ -76,43 +77,21 @@ function loadKit() {
 
 /* ───────── Injected fallback ───────── */
 
-function initInjected() {
-  const eth = injected();
-  set({ available: Boolean(eth) });
-  if (!eth) return;
-  eth.on?.('accountsChanged', (accounts) => set({ account: accounts?.[0] || '' }));
-  eth.on?.('chainChanged', (id) => set({ chainId: Number.parseInt(id, 16) || 0 }));
-  Promise.all([eth.request({ method: 'eth_accounts' }), eth.request({ method: 'eth_chainId' })])
-    .then(([accounts, id]) => set({ account: accounts?.[0] || '', chainId: Number.parseInt(id, 16) || 0 }))
-    .catch(() => {
-      /* wallet locked or unavailable; stay disconnected */
-    });
-}
+const keyOf = (provider) => provider?.publicKey?.toString?.() || '';
 
-async function switchInjected(eth) {
-  const chainId = chainIdHex();
-  try {
-    await eth.request({ method: 'wallet_switchEthereumChain', params: [{ chainId }] });
-  } catch (err) {
-    if (err?.code !== 4902 || !activeNetwork.rpcUrl) {
-      set({ error: err?.code === 4001 ? 'Request declined' : 'Network switch failed' });
-      return;
-    }
-    try {
-      await eth.request({
-        method: 'wallet_addEthereumChain',
-        params: [{
-          chainId,
-          chainName: activeNetwork.name,
-          nativeCurrency: activeNetwork.nativeCurrency,
-          rpcUrls: [activeNetwork.rpcUrl],
-          blockExplorerUrls: activeNetwork.blockExplorerUrl ? [activeNetwork.blockExplorerUrl] : [],
-        }],
-      });
-    } catch {
-      set({ error: 'Network add failed' });
-    }
-  }
+function initInjected() {
+  const provider = injected();
+  set({ available: Boolean(provider) });
+  if (!provider) return;
+  provider.on?.('connect', () => set({ account: keyOf(provider) }));
+  provider.on?.('disconnect', () => set({ account: '' }));
+  provider.on?.('accountChanged', (key) => set({ account: key?.toString?.() || '' }));
+  // Restores a session the user already approved; never opens a prompt.
+  provider.connect?.({ onlyIfTrusted: true })
+    .then(() => set({ account: keyOf(provider) }))
+    .catch(() => {
+      /* not trusted yet; stay disconnected */
+    });
 }
 
 /* ───────── Public API ───────── */
@@ -146,19 +125,18 @@ export async function connectWallet() {
   if (kitEnabled) {
     try {
       const { modal } = await loadKit();
-      await modal.open({ view: 'Connect' });
+      await modal.open({ view: 'Connect', namespace: 'solana' });
     } catch {
       /* loadKit already recorded the error */
     }
     return;
   }
-  const eth = injected();
-  if (!eth) return set({ error: 'No wallet detected' });
+  const provider = injected();
+  if (!provider) return set({ error: 'No Solana wallet detected' });
   set({ connecting: true });
   try {
-    const accounts = await eth.request({ method: 'eth_requestAccounts' });
-    const id = await eth.request({ method: 'eth_chainId' });
-    set({ account: accounts?.[0] || '', chainId: Number.parseInt(id, 16) || 0 });
+    await provider.connect();
+    set({ account: keyOf(provider) });
   } catch (err) {
     set({ error: err?.code === 4001 ? 'Request declined' : 'Connection failed' });
   } finally {
@@ -167,40 +145,10 @@ export async function connectWallet() {
 }
 
 export async function disconnectWallet() {
-  if (kit) return kit.modal.disconnect();
-  // EIP-1193 has no disconnect; clear the local session only.
-  set({ account: '' });
-}
-
-export async function switchToActiveNetwork() {
-  set({ error: '' });
-  if (kit && state.account) {
-    try {
-      await kit.core.switchChain(kit.wagmiConfig, { chainId: activeNetwork.chainId });
-    } catch (err) {
-      set({ error: /reject|denied/i.test(err?.message || '') ? 'Request declined' : 'Network switch failed' });
-    }
-    return;
+  if (kit) return kit.modal.disconnect('solana');
+  try {
+    await injected()?.disconnect?.();
+  } finally {
+    set({ account: '' });
   }
-  const eth = injected();
-  if (eth) return switchInjected(eth);
-  if (kitEnabled) return connectWallet();
-}
-
-/** Send a transaction from the connected account. Resolves with the hash. */
-export async function sendTransaction({ to, data, value = 0n }) {
-  if (kit && state.account) {
-    return kit.core.sendTransaction(kit.wagmiConfig, {
-      account: state.account,
-      chainId: activeNetwork.chainId,
-      to,
-      data,
-      value,
-    });
-  }
-  const eth = injected();
-  if (!eth) throw new Error('No wallet detected');
-  const tx = { from: state.account, to, data };
-  if (value > 0n) tx.value = `0x${value.toString(16)}`;
-  return eth.request({ method: 'eth_sendTransaction', params: [tx] });
 }

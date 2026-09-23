@@ -1,74 +1,34 @@
 /**
- * Knix contract client.
+ * Knix client for Solana. Read only.
  *
- * Reads go to the public RPC (no wallet needed). Writes go through the wallet
- * store (Reown AppKit or the injected wallet). Calldata is encoded by hand: the
- * contract surface is small and reads never need a web3 library.
+ * Reads go to the configured Solana RPC (no wallet needed): SPL mint data and
+ * token balances. There is no Knix program on Solana yet, so this module has no
+ * write path at all: nothing here builds, signs or sends a transaction.
  *
- * Selectors below were taken from the deployed contracts with `cast sig`.
+ * The market clock (US equity regular session) is computed locally from the
+ * exchange calendar below. Once the Knix program ships, its clock is the source
+ * of truth.
  */
-import { CONTRACTS } from '../config/contracts.js';
-import { activeNetwork } from '../config/network.js';
-import { isConfiguredAddress } from './address.js';
+import { ACCOUNTS } from '../config/solana.js';
+import { isConfiguredAddress, isPublicKey } from './address.js';
 import { rpcCall } from './rpc.js';
-import { getWalletState, sendTransaction } from './wallet.js';
 
-const SEL = {
-  deposit: '0x0efe6a8b', // deposit(address,uint256,uint256)
-  requestWithdrawal: '0x9ee679e8', // requestWithdrawal(uint256)
-  cancelWithdrawal: '0x3efcfda4', // cancelWithdrawal(uint256)
-  finalizeWithdrawal: '0x5e15c749', // finalizeWithdrawal(uint256)
-  isMarketOpen: '0xd4ce85f3', // isMarketOpen()
-  nextMarketOpen: '0xa0b601fb', // nextMarketOpen(uint256)
-  getPosition: '0xeb02c301', // getPosition(uint256)
-  positionsOf: '0xf867d46b', // positionsOf(address)
-  positionCount: '0xe7702d05', // positionCount()
-  minCooldown: '0xf714cb44', // MIN_COOLDOWN()
-  maxCooldown: '0x8b41d35f', // MAX_COOLDOWN()
-  balanceOf: '0x70a08231', // balanceOf(address)
-  allowance: '0xdd62ed3e', // allowance(address,address)
-  approve: '0x095ea7b3', // approve(address,uint256)
-  decimals: '0x313ce567', // decimals()
-  symbol: '0x95d89b41', // symbol()
-};
+export { isPublicKey };
 
-export const STATUS = { ACTIVE: 0, PENDING: 1, CLOSED: 2 };
-export const MAX_UINT256 = (1n << 256n) - 1n;
+const TOKEN_PROGRAMS = new Set([
+  'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', // SPL Token
+  'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb', // SPL Token 2022
+]);
 
-/* ───────── encoding ───────── */
+/* ───────── units ───────── */
 
-const strip = (hex) => String(hex ?? '').replace(/^0x/, '');
-const word = (hex) => strip(hex).padStart(64, '0');
-const encUint = (value) => word(BigInt(value).toString(16));
-const encAddress = (address) => word(address.toLowerCase().replace(/^0x/, ''));
-const wordAt = (data, index) => strip(data).slice(index * 64, (index + 1) * 64);
-const toBigInt = (hexWord) => (hexWord ? BigInt(`0x${hexWord}`) : 0n);
-const toAddress = (hexWord) => `0x${hexWord.slice(24)}`;
-
-/** Decode an ABI string, tolerating tokens that return bytes32 instead. */
-function decodeString(data) {
-  const body = strip(data);
-  if (!body) return '';
-  if (body.length === 64) {
-    const bytes = body.replace(/(00)+$/, '');
-    let out = '';
-    for (let i = 0; i < bytes.length; i += 2) out += String.fromCharCode(parseInt(bytes.slice(i, i + 2), 16));
-    return out.trim();
-  }
-  const length = Number(toBigInt(wordAt(body, 1)));
-  const chars = body.slice(128, 128 + length * 2);
-  let out = '';
-  for (let i = 0; i < chars.length; i += 2) out += String.fromCharCode(parseInt(chars.slice(i, i + 2), 16));
-  return out;
-}
-
-export function parseUnits(value, decimals = 18) {
+export function parseUnits(value, decimals = 9) {
   const [whole = '0', fraction = ''] = String(value).trim().split('.');
   const padded = (fraction + '0'.repeat(decimals)).slice(0, decimals);
   return BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt(padded || '0');
 }
 
-export function formatUnits(value, decimals = 18, precision = 6) {
+export function formatUnits(value, decimals = 9, precision = 6) {
   if (value == null) return '';
   const base = 10n ** BigInt(decimals);
   const whole = value / base;
@@ -76,177 +36,100 @@ export function formatUnits(value, decimals = 18, precision = 6) {
   return fraction ? `${whole}.${fraction}` : whole.toString();
 }
 
-/* ───────── addresses ───────── */
+/* ───────── accounts ───────── */
 
-export const CORE = CONTRACTS.KNIX_CORE_ADDRESS;
-export const LENS = CONTRACTS.KNIX_LENS_ADDRESS;
+export const PROGRAM_ID = ACCOUNTS.PROGRAM_ID;
 
-/** True once a Knix core address is configured for the active network. */
-export const knixDeployed = () => isConfiguredAddress(CORE);
-
-export const isAddress = (value) => /^0x[0-9a-fA-F]{40}$/.test(String(value ?? '').trim());
+/** True once a Knix program id is configured for the active cluster. */
+export const knixDeployed = () => isConfiguredAddress(PROGRAM_ID);
 
 /* ───────── reads (public RPC) ───────── */
 
-const call = (to, data) => rpcCall('eth_call', [{ to, data }, 'latest']);
-
-async function readUint(to, data) {
-  const result = await call(to, data);
-  return result && result !== '0x' ? toBigInt(wordAt(result, 0)) : null;
-}
-
-export async function readMarket() {
-  if (!knixDeployed()) return null;
-  const now = Math.floor(Date.now() / 1000);
-  const [openRaw, nextRaw] = await Promise.all([
-    call(CORE, SEL.isMarketOpen),
-    call(CORE, SEL.nextMarketOpen + encUint(now)),
-  ]);
-  if (openRaw == null || nextRaw == null) return null;
-  return { open: toBigInt(wordAt(openRaw, 0)) === 1n, nextOpen: Number(toBigInt(wordAt(nextRaw, 0))) };
-}
-
-export async function readCooldownBounds() {
-  if (!knixDeployed()) return null;
-  const [min, max] = await Promise.all([readUint(CORE, SEL.minCooldown), readUint(CORE, SEL.maxCooldown)]);
-  return min == null || max == null ? null : { min: Number(min), max: Number(max) };
-}
-
-/** Position ids owned by `owner`, oldest first. */
-export async function readPositionIds(owner) {
-  if (!knixDeployed() || !isAddress(owner)) return [];
-  const data = await call(CORE, SEL.positionsOf + encAddress(owner));
-  if (!data || data === '0x') return [];
-  const length = Number(toBigInt(wordAt(data, 1)));
-  return Array.from({ length }, (_, i) => toBigInt(wordAt(data, 2 + i)));
-}
-
-export async function readPosition(id) {
-  if (!knixDeployed()) return null;
-  const data = await call(CORE, SEL.getPosition + encUint(id));
-  if (!data || data === '0x') return null;
-  return {
-    id: BigInt(id),
-    owner: toAddress(wordAt(data, 0)),
-    token: toAddress(wordAt(data, 1)),
-    amount: toBigInt(wordAt(data, 2)),
-    cooldown: Number(toBigInt(wordAt(data, 3))),
-    tip: toBigInt(wordAt(data, 4)),
-    unlockTime: Number(toBigInt(wordAt(data, 5))),
-    status: Number(toBigInt(wordAt(data, 6))),
-  };
-}
-
-export async function readPositions(owner) {
-  const ids = await readPositionIds(owner);
-  const positions = await Promise.all(ids.map((id) => readPosition(id)));
-  return positions.filter(Boolean);
-}
-
-/** Symbol and decimals for an ERC20, or null when the address is not a token. */
-export async function readToken(token) {
-  if (!isAddress(token)) return null;
-  const [symbolRaw, decimalsRaw] = await Promise.all([call(token, SEL.symbol), call(token, SEL.decimals)]);
-  if (decimalsRaw == null || decimalsRaw === '0x') return null;
-  return {
-    address: token,
-    symbol: decodeString(symbolRaw) || 'TOKEN',
-    decimals: Number(toBigInt(wordAt(decimalsRaw, 0))),
-  };
-}
-
-export const readTokenBalance = (token, owner) =>
-  isAddress(token) && isAddress(owner) ? readUint(token, SEL.balanceOf + encAddress(owner)) : Promise.resolve(null);
-
-export const readAllowance = (token, owner) =>
-  isAddress(token) && isAddress(owner)
-    ? readUint(token, SEL.allowance + encAddress(owner) + encAddress(CORE))
-    : Promise.resolve(null);
-
-/* ───────── writes (wallet) ───────── */
-
-async function send(tx) {
-  const { account, onActiveChain } = getWalletState();
-  if (!account) throw new Error('Connect a wallet first');
-  if (!onActiveChain) throw new Error(`Switch to ${activeNetwork.name}`);
-  return sendTransaction(tx);
-}
-
 /**
- * Wait for a receipt on the public RPC (WalletConnect sessions do not reliably
- * relay reads). Resolves with it, or throws when the transaction reverted.
+ * Decimals and symbol for an SPL mint, or null when the address is not a mint.
+ * The symbol comes from Token 2022 metadata when the mint carries it.
  */
-export async function waitForTx(hash, { timeout = 180_000, interval = 1_500 } = {}) {
-  const deadline = Date.now() + timeout;
-  while (Date.now() < deadline) {
-    const receipt = await rpcCall('eth_getTransactionReceipt', [hash]);
-    if (receipt) {
-      if (receipt.status && BigInt(receipt.status) === 0n) throw new Error('Transaction reverted');
-      return receipt;
-    }
-    await new Promise((resolve) => setTimeout(resolve, interval));
-  }
-  throw new Error('Timed out waiting for confirmation');
+export async function readToken(mint) {
+  if (!isPublicKey(mint)) return null;
+  const result = await rpcCall('getAccountInfo', [mint, { encoding: 'jsonParsed', commitment: 'confirmed' }]);
+  const account = result?.value;
+  const parsed = account?.data?.parsed;
+  if (!account || !TOKEN_PROGRAMS.has(account.owner) || parsed?.type !== 'mint') return null;
+  const metadata = parsed.info?.extensions?.find((e) => e.extension === 'tokenMetadata')?.state;
+  return {
+    address: mint,
+    symbol: (metadata?.symbol || '').trim() || 'SPL',
+    decimals: Number(parsed.info.decimals) || 0,
+  };
 }
 
-export const approve = (token, amount = MAX_UINT256) =>
-  send({ to: token, data: SEL.approve + encAddress(CORE) + encUint(amount) });
+/** Raw balance of `mint` held by `owner` across its token accounts, or null on failure. */
+export async function readTokenBalance(mint, owner) {
+  if (!isPublicKey(mint) || !isPublicKey(owner)) return null;
+  const result = await rpcCall('getTokenAccountsByOwner', [
+    owner,
+    { mint },
+    { encoding: 'jsonParsed', commitment: 'confirmed' },
+  ]);
+  if (!result?.value) return null;
+  return result.value.reduce((sum, { account }) => {
+    const amount = account?.data?.parsed?.info?.tokenAmount?.amount;
+    return amount ? sum + BigInt(amount) : sum;
+  }, 0n);
+}
 
-export const deposit = ({ token, amount, cooldown, tip = 0n }) =>
-  send({
-    to: CORE,
-    data: SEL.deposit + encAddress(token) + encUint(amount) + encUint(cooldown),
-    value: BigInt(tip),
-  });
+/* ───────── market clock ───────── */
 
-export const requestWithdrawal = (id) => send({ to: CORE, data: SEL.requestWithdrawal + encUint(id) });
-export const cancelWithdrawal = (id) => send({ to: CORE, data: SEL.cancelWithdrawal + encUint(id) });
-export const finalizeWithdrawal = (id) => send({ to: CORE, data: SEL.finalizeWithdrawal + encUint(id) });
+const ZONE = 'America/New_York';
+const OPEN = 9 * 60 + 30;
+const CLOSE = 16 * 60;
+const EARLY_CLOSE = 13 * 60;
 
-/** Knix custom errors by selector, for wallets that only return raw revert data. */
-const ERRORS = {
-  '0x1f2a2005': 'Amount must be above zero',
-  '0xc3034e82': 'Cooldown is outside the allowed range',
-  '0xb5c74a27': 'The token moved nothing on transfer',
-  '0x30cd7471': 'That position belongs to another wallet',
-  '0x80cb55e2': 'Position is not active',
-  '0x7dc6505a': 'No withdrawal queued for that position',
-  '0xdbe9008d': 'Already unlocked, finalize it instead',
-  '0x16b82bbe': 'Still locked, try again after the unlock time',
-  '0x6d963f88': 'The tip transfer failed',
-};
+// NYSE full closures and early closes (13:00 ET). Outside these years only weekends apply.
+const HOLIDAYS = new Set([
+  '2026-01-01', '2026-01-19', '2026-02-16', '2026-04-03', '2026-05-25', '2026-06-19',
+  '2026-07-03', '2026-09-07', '2026-11-26', '2026-12-25',
+  '2027-01-01', '2027-01-18', '2027-02-15', '2027-03-26', '2027-05-31', '2027-06-18',
+  '2027-07-05', '2027-09-06', '2027-11-25', '2027-12-24',
+]);
+const EARLY_CLOSES = new Set(['2026-11-27', '2026-12-24', '2027-11-26']);
 
-const NAMED = {
-  ZeroAmount: ERRORS['0x1f2a2005'],
-  InvalidCooldown: ERRORS['0xc3034e82'],
-  NothingReceived: ERRORS['0xb5c74a27'],
-  NotOwner: ERRORS['0x30cd7471'],
-  NotActive: ERRORS['0x80cb55e2'],
-  NotPending: ERRORS['0x7dc6505a'],
-  AlreadyUnlocked: ERRORS['0xdbe9008d'],
-  StillLocked: ERRORS['0x16b82bbe'],
-  EthTransferFailed: ERRORS['0x6d963f88'],
-};
+const partsFormat = new Intl.DateTimeFormat('en-US', {
+  timeZone: ZONE, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+});
 
-/** Wallet errors are verbose and nested; surface something a person can read. */
-export function describeError(error) {
-  const chain = [];
-  for (let e = error, depth = 0; e && depth < 8; e = e.cause, depth += 1) chain.push(e);
-  const text = chain
-    .flatMap((e) => [e.shortMessage, e.details, e.message, e.data?.message, typeof e.data === 'string' ? e.data : e.data?.data])
-    .filter((v) => typeof v === 'string')
-    .join(' | ');
+function zoned(ms) {
+  const p = Object.fromEntries(partsFormat.formatToParts(ms).map(({ type, value }) => [type, value]));
+  return { y: +p.year, m: +p.month, d: +p.day, minutes: +p.hour * 60 + +p.minute };
+}
 
-  if (chain.some((e) => e.code === 4001 || e.name === 'UserRejectedRequestError') || /user (rejected|denied)|rejected the request/i.test(text)) {
-    return 'Request declined';
+/** Epoch ms for a wall clock time in New York. */
+function fromZoned(y, m, d, minutes) {
+  const guess = Date.UTC(y, m - 1, d, 0, minutes);
+  const at = zoned(guess);
+  const offset = Date.UTC(at.y, at.m - 1, at.d, 0, at.minutes) - guess;
+  return guess - offset;
+}
+
+function session(y, m, d) {
+  const key = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+  if (weekday === 0 || weekday === 6 || HOLIDAYS.has(key)) return null;
+  return {
+    open: fromZoned(y, m, d, OPEN),
+    close: fromZoned(y, m, d, EARLY_CLOSES.has(key) ? EARLY_CLOSE : CLOSE),
+  };
+}
+
+/** US equity regular session: { open, nextOpen } with nextOpen in unix seconds. */
+export function readMarket(now = Date.now()) {
+  const today = zoned(now);
+  for (let i = 0; i < 14; i += 1) {
+    const day = new Date(Date.UTC(today.y, today.m - 1, today.d + i));
+    const s = session(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate());
+    if (!s) continue;
+    if (now >= s.open && now < s.close) return { open: true, nextOpen: Math.floor(now / 1000) };
+    if (now < s.open) return { open: false, nextOpen: Math.floor(s.open / 1000) };
   }
-  if (/insufficient funds/i.test(text)) return 'Not enough ETH for gas';
-  const selector = text.match(/0x[0-9a-f]{8}/gi)?.find((s) => ERRORS[s.toLowerCase()]);
-  if (selector) return ERRORS[selector.toLowerCase()];
-  const named = Object.keys(NAMED).find((name) => text.includes(name));
-  if (named) return NAMED[named];
-  if (chain.some((e) => e.name === 'ConnectorNotConnectedError')) return 'Connect a wallet first';
-
-  const message = error?.shortMessage || error?.message || 'Transaction failed';
-  return message.length > 140 ? `${message.slice(0, 140)}…` : message;
+  return null;
 }

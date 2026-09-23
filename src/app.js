@@ -5,11 +5,18 @@ import './styles/app.css';
 
 import { mountContractAddress } from './components/contract-address.js';
 import { mountPool } from './components/pool.js';
-import { CONTRACTS } from './config/contracts.js';
-import { activeNetwork, explorerUrl } from './config/network.js';
-import { isConfiguredAddress, shortAddress } from './lib/address.js';
+import { ACCOUNTS, activeNetwork, explorerUrl } from './config/solana.js';
+import { isConfiguredAddress, shortAddress, writeClipboard } from './lib/address.js';
+import { formatUnits, readToken, readTokenBalance } from './lib/knix.js';
 import { initMotion, toast } from './lib/motion.js';
-import { connectWallet, disconnectWallet, initWallet, subscribeWallet, switchToActiveNetwork } from './lib/wallet.js';
+import { readSolBalance } from './lib/rpc.js';
+import { connectWallet, disconnectWallet, initWallet, subscribeWallet } from './lib/wallet.js';
+
+const ACCOUNT_ROWS = [
+  ['Knix program', ACCOUNTS.PROGRAM_ID],
+  ['$KNIX mint', ACCOUNTS.TOKEN_MINT],
+  ['Treasury', ACCOUNTS.TREASURY_ADDRESS],
+];
 
 const ROUTES = {
   pool: { title: 'Pool', eyebrow: 'Core' },
@@ -42,11 +49,7 @@ function route(focus) {
 
 function renderReadiness() {
   const list = document.querySelector('[data-readiness]');
-  const rows = [
-    ['Knix core', CONTRACTS.KNIX_CORE_ADDRESS],
-    ['Knix lens', CONTRACTS.KNIX_LENS_ADDRESS],
-    ['$KNIX token', CONTRACTS.KNIX_TOKEN_ADDRESS],
-  ];
+  const rows = ACCOUNT_ROWS;
   const set = rows.filter(([, a]) => isConfiguredAddress(a)).length;
   list.innerHTML = rows
     .map(([label, address]) => {
@@ -59,13 +62,12 @@ function renderReadiness() {
 
 function renderRegistry() {
   const list = document.querySelector('[data-registry]');
-  const rows = Object.entries(CONTRACTS);
+  const rows = ACCOUNT_ROWS;
   let set = 0;
   list.innerHTML = rows
-    .map(([key, address]) => {
+    .map(([label, address]) => {
       const ok = isConfiguredAddress(address);
       if (ok) set += 1;
-      const label = key.replace(/^KNIX_/, '').replace(/_ADDRESS$/, '').replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\w/g, (c) => c.toUpperCase());
       return `<li><span class="dot ${ok ? 'dot--warm' : ''}"></span>${label}<b>${ok ? shortAddress(address) : 'Pending'}</b></li>`;
     })
     .join('');
@@ -76,37 +78,78 @@ function initWalletUi() {
   const buttons = document.querySelectorAll('[data-wallet]');
   const netLabel = document.querySelector('[data-net-label]');
   const netDot = document.querySelector('[data-net-dot]');
+  const copyKey = document.querySelector('[data-copy-key]');
+  const tokenRow = document.querySelector('[data-profile-token]');
+  const mintLive = isConfiguredAddress(ACCOUNTS.TOKEN_MINT);
+  if (!mintLive) tokenRow?.remove();
+  const mint = mintLive ? readToken(ACCOUNTS.TOKEN_MINT) : null;
   let state;
 
+  const profile = (k, v) => {
+    const el = document.querySelector(`[data-profile="${k}"]`);
+    if (el) el.textContent = v;
+  };
+
+  /* Read only balances for the connected key */
+  let balanceRun = 0;
+  async function refreshBalances(account) {
+    const run = ++balanceRun;
+    if (!account) {
+      profile('balance', 'Not connected');
+      profile('token', 'Not connected');
+      return;
+    }
+    profile('balance', 'Reading');
+    if (mintLive) profile('token', 'Reading');
+    const [lamports, token, raw] = await Promise.all([
+      readSolBalance(account),
+      mint,
+      mintLive ? readTokenBalance(ACCOUNTS.TOKEN_MINT, account) : null,
+    ]);
+    if (run !== balanceRun) return;
+    profile('balance', lamports == null ? 'Unavailable' : `${formatUnits(lamports, activeNetwork.nativeCurrency.decimals, 4)} SOL`);
+    if (mintLive) profile('token', raw == null || !token ? 'Unavailable' : `${formatUnits(raw, token.decimals, 4)} KNIX`);
+  }
+
   let lastError = '';
+  let lastAccount = null;
   subscribeWallet((w) => {
     state = w;
     if (w.error && w.error !== lastError) toast(w.error);
     lastError = w.error;
     let label = 'Connect wallet';
     if (w.connecting) label = 'Waiting for wallet';
-    else if (w.connected && !w.onActiveChain) label = 'Switch network';
     else if (w.connected) label = shortAddress(w.account);
     buttons.forEach((b) => {
       b.textContent = label;
-      b.classList.toggle('btn--ghost', w.connected && w.onActiveChain);
-      b.classList.toggle('btn--primary', !(w.connected && w.onActiveChain));
+      b.classList.toggle('btn--ghost', w.connected);
+      b.classList.toggle('btn--primary', !w.connected);
     });
 
-    netLabel.textContent = w.connected && !w.onActiveChain ? 'Wrong network' : activeNetwork.name;
-    netDot.className = `dot ${w.connected && w.onActiveChain ? 'dot--warm' : w.connected ? '' : 'dot--accent'}`;
+    netLabel.textContent = activeNetwork.name;
+    netDot.className = `dot ${w.connected ? 'dot--warm' : 'dot--accent'}`;
 
-    const profile = (k, v) => (document.querySelector(`[data-profile="${k}"]`).textContent = v);
     profile('address', w.connected ? shortAddress(w.account, 10, 8) : 'Not connected');
-    profile('network', !w.connected ? 'Not connected' : w.onActiveChain ? activeNetwork.name : `Chain ${w.chainId}`);
-    profile('position', isConfiguredAddress(CONTRACTS.KNIX_CORE_ADDRESS) ? 'See Pool' : 'Knix pending');
+    if (copyKey) copyKey.title = w.connected ? 'Copy public key' : '';
+    profile('network', !w.connected ? 'Not connected' : `${activeNetwork.name} ${activeNetwork.clusterLabel}`);
+    profile('position', isConfiguredAddress(ACCOUNTS.PROGRAM_ID) ? 'See Pool' : 'Knix pending');
+
+    if (w.account !== lastAccount) {
+      lastAccount = w.account;
+      refreshBalances(w.account);
+    }
+  });
+
+  copyKey?.addEventListener('click', async () => {
+    if (!state?.connected) return;
+    const ok = await writeClipboard(state.account);
+    toast(ok ? 'Public key copied' : 'Copy failed', { anchor: copyKey, tone: ok ? 'success' : undefined });
   });
 
   buttons.forEach((b) =>
     b.addEventListener('click', () => {
-      if (!state?.available) return toast('No wallet detected', { anchor: b });
+      if (!state?.available) return toast('No Solana wallet detected', { anchor: b });
       if (!state.connected) return connectWallet();
-      if (!state.onActiveChain) return switchToActiveNetwork();
       disconnectWallet();
       toast('Disconnected');
     }),
