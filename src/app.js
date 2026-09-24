@@ -9,7 +9,15 @@ import { CONTRACTS } from './config/contracts.js';
 import { activeNetwork, explorerUrl } from './config/network.js';
 import { isConfiguredAddress, shortAddress } from './lib/address.js';
 import { initMotion, toast } from './lib/motion.js';
-import { connectWallet, disconnectWallet, initWallet, subscribeWallet, switchToActiveNetwork } from './lib/wallet.js';
+import {
+  connectWallet,
+  disconnectWallet,
+  hadWalletSession,
+  initWallet,
+  subscribeWallet,
+  switchToActiveNetwork,
+  warmWalletOn,
+} from './lib/wallet.js';
 
 const ROUTES = {
   pool: { title: 'Pool', eyebrow: 'Core' },
@@ -102,6 +110,7 @@ function initWalletUi() {
     profile('position', isConfiguredAddress(CONTRACTS.KNIX_CORE_ADDRESS) ? 'See Pool' : 'Knix pending');
   });
 
+  buttons.forEach(warmWalletOn);
   buttons.forEach((b) =>
     b.addEventListener('click', () => {
       if (!state?.available) return toast('No wallet detected', { anchor: b });
@@ -132,6 +141,7 @@ mountPool();
 renderReadiness();
 renderRegistry();
 initWalletUi();
-initWallet();
+// Restore a previous session right away; first time visitors load the wallet on intent.
+initWallet({ eager: hadWalletSession() });
 initMotion();
 loadViews();

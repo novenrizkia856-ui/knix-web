@@ -6,8 +6,10 @@
 
 /* grain overlay for the whole page */
 body::after {
+  /* static noise tile: a plain image layer, nothing to rasterize per frame */
   content: ''; position: fixed; inset: 0; z-index: 80; pointer-events: none; opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background: url('/grain.png') repeat;
+  background-size: 128px 128px;
 }
 
 /* ═════════ HERO ═════════ */
@@ -26,10 +28,13 @@ body::after {
 }
 .hero__stage { position: absolute; inset: 0; z-index: -1; }
 .hero__stage canvas {
-  width: 100% !important; height: 100% !important; opacity: 0; transition: opacity 800ms var(--ease-out);
-  /* soften the liquid horizon and dissolve into the next section */
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, transparent 66%, #000 76%, #000 90%, transparent 100%);
-  mask-image: linear-gradient(180deg, transparent 0%, transparent 66%, #000 76%, #000 90%, transparent 100%);
+  /* the renderer only draws the lower 36% band (BAND in liquid-scene.js) */
+  position: absolute; left: 0; bottom: 0;
+  width: 100% !important; height: 36% !important; opacity: 0; transition: opacity 800ms var(--ease-out);
+  /* soften the liquid horizon and dissolve into the next section
+     (stops are the old full-height 66 / 76 / 90 / 100% mapped into the band) */
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, transparent 5.6%, #000 33.3%, #000 72.2%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, transparent 5.6%, #000 33.3%, #000 72.2%, transparent 100%);
 }
 .hero__stage.is-ready canvas { opacity: 1; }
 .hero__fallback {
@@ -69,13 +74,13 @@ body::after {
 .hero__meta b { font-weight: 500; color: var(--ink); }
 .hero__scroll { margin-left: 0; display: flex !important; align-items: center; gap: 12px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-3); }
 .hero__scroll-line { position: relative; width: 1px; height: 36px; background: var(--line-2); overflow: hidden; }
-.hero__scroll-line::after { content: ''; position: absolute; left: 0; top: -40%; width: 1px; height: 40%; background: var(--accent-hi); animation: scroll-cue 2.2s var(--ease-std) infinite; }
-@keyframes scroll-cue { to { top: 100%; } }
+.hero__scroll-line::after { content: ''; position: absolute; left: 0; top: 0; width: 1px; height: 40%; background: var(--accent-hi); transform: translateY(-100%); animation: scroll-cue 2.2s var(--ease-std) infinite; }
+@keyframes scroll-cue { to { transform: translateY(250%); } }
 
 @media (max-width: 960px) {
   .hero__stage canvas {
-    -webkit-mask-image: linear-gradient(180deg, transparent 0%, transparent 66%, #000 78%, #000 88%, transparent 100%);
-    mask-image: linear-gradient(180deg, transparent 0%, transparent 66%, #000 78%, #000 88%, transparent 100%);
+    -webkit-mask-image: linear-gradient(180deg, transparent 0%, transparent 5.6%, #000 38.9%, #000 66.7%, transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0%, transparent 5.6%, #000 38.9%, #000 66.7%, transparent 100%);
   }
   .hero__inner { align-items: flex-start; }
   .hero__content { padding-block: clamp(24px, 6vh, 56px) 16px; }

@@ -13,7 +13,7 @@ import { activeNetwork, explorerUrl } from '../config/network.js';
 import { shortAddress } from '../lib/address.js';
 import * as knix from '../lib/knix.js';
 import { toast } from '../lib/motion.js';
-import { connectWallet, initWallet, preloadWallet, subscribeWallet, switchToActiveNetwork } from '../lib/wallet.js';
+import { connectWallet, hadWalletSession, initWallet, preloadWallet, subscribeWallet, switchToActiveNetwork, warmWalletOn } from '../lib/wallet.js';
 
 const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>';
 const STATUS_LABEL = ['Locked', 'Queued', 'Closed'];
@@ -575,17 +575,10 @@ export function mountPool(root = document) {
     }, 30_000);
   }
 
-  // The app page restores sessions eagerly; on the landing the wallet loads once the pool is near.
+  // The app page restores sessions eagerly. On the landing the wallet bundle (the
+  // heaviest part of the site) loads only for returning wallets, or on intent.
   initWallet({ eager: false });
-  if ('IntersectionObserver' in window) {
-    const io = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return;
-      io.disconnect();
-      preloadWallet();
-    }, { rootMargin: '400px 0px' });
-    io.observe(host);
-  } else {
-    preloadWallet();
-  }
+  if (hadWalletSession()) preloadWallet();
+  warmWalletOn(cta);
   update();
 }

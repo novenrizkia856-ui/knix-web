@@ -35,6 +35,7 @@ export function mountContractAddress(root = document) {
     const link = live ? explorerUrl('token', address) : '';
     host.innerHTML = `
       <div class="ca" data-state="${live ? 'live' : 'pending'}">
+        <span class="ca__rim" aria-hidden="true"></span>
         <span class="ca__tag"><span class="dot ${live ? 'dot--warm' : 'dot--accent dot--pulse'}"></span>$KNIX CA</span>
         <span class="ca__value" ${live ? `title="${address}"` : ''}>${live ? address : 'Coming Soon'}</span>
         <span class="ca__actions">

@@ -11,7 +11,7 @@ import { activeNetwork, explorerUrl } from './config/network.js';
 import { isConfiguredAddress, shortAddress } from './lib/address.js';
 import { initMotion, reducedMotion, toast } from './lib/motion.js';
 import { latestBlock } from './lib/rpc.js';
-import { initWallet, subscribeWallet, switchToActiveNetwork } from './lib/wallet.js';
+import { initWallet, subscribeWallet, switchToActiveNetwork, warmWalletOn } from './lib/wallet.js';
 
 /* Network facts, always from config */
 function renderNetworkFacts() {
@@ -112,6 +112,7 @@ function initDeck() {
 function initChainActions() {
   const btn = document.querySelector('[data-add-network]');
   if (!btn) return;
+  warmWalletOn(btn);
   let wallet;
   let lastError = '';
   subscribeWallet((w) => {

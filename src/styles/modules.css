@@ -126,5 +126,7 @@
 /* ───────── WebGL section renders (shared overlay canvas) ───────── */
 .gl-view { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 [data-gl].is-gl > :not(.gl-view) { visibility: hidden; }
+/* hidden stand ins would still tick their loops every frame */
+[data-gl].is-gl *, [data-gl].is-gl *::before, [data-gl].is-gl *::after { animation: none !important; }
 /* the CSS stand ins are tilted for depth; the WebGL render brings its own */
 .v-swap.is-gl { transform: none; }

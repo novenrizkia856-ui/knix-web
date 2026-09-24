@@ -62,6 +62,9 @@ function darkStudio(renderer) {
   return target;
 }
 
+/** Visible share of the hero height, measured from the bottom. Keep in sync with landing.css. */
+const BAND = 0.36;
+
 export async function mountLiquidScene(container, { reduced = false } = {}) {
   if (!hasWebGL()) return null;
   const small = window.matchMedia('(max-width: 720px)').matches;
@@ -165,14 +168,18 @@ export async function mountLiquidScene(container, { reduced = false } = {}) {
   let running = false;
   let raf = 0;
 
+  // Only the lower band of the hero ever shows the surface (the CSS mask hides the
+  // rest), so render just that band: same framing via a view offset, ~a third of the pixels.
   const resize = () => {
     const { width, height } = container.getBoundingClientRect();
     if (!width || !height) return;
-    renderer.setSize(width, height, false);
+    const band = Math.round(height * BAND);
+    renderer.setSize(width, band, false);
     camera.aspect = width / height;
     const narrow = camera.aspect < 0.9;
     camera.fov = narrow ? 50 : 34;
     rig = narrow ? { y: 1.3, targetY: 3.4 } : { y: 1, targetY: 2.47 };
+    camera.setViewOffset(width, height, 0, height - band, width, band);
     camera.updateProjectionMatrix();
     if (!running) render(elapsed);
   };

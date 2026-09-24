@@ -134,11 +134,36 @@ export function initWallet({ eager = true } = {}) {
 }
 
 /** Start loading AppKit in the background. No effect without a project id. */
-export function preloadWallet() {
+export function preloadWallet({ now = false } = {}) {
   if (!kitEnabled || kitPromise) return;
   const go = () => loadKit().catch(() => {});
-  if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 1500 });
+  if (now) go();
+  else if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 1500 });
   else setTimeout(go, 200);
+}
+
+/**
+ * True when this browser connected a wallet before, so AppKit is worth loading
+ * up front to restore the session. Everyone else loads it on intent.
+ */
+export function hadWalletSession() {
+  try {
+    return (
+      localStorage.getItem('@appkit/connection_status') === 'connected' ||
+      Object.keys(localStorage).some((k) => k.startsWith('@appkit/') && k.endsWith('connected_connector_id'))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/** Warm the wallet bundle when a pointer or finger heads for a connect control. */
+export function warmWalletOn(el) {
+  if (!el || !kitEnabled) return;
+  const warm = () => preloadWallet({ now: true });
+  el.addEventListener('pointerenter', warm, { once: true, passive: true });
+  el.addEventListener('touchstart', warm, { once: true, passive: true });
+  el.addEventListener('focus', warm, { once: true });
 }
 
 export async function connectWallet() {
