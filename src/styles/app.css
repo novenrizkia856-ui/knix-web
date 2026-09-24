@@ -34,8 +34,6 @@
 .side__foot .ca { display: grid; grid-template-columns: 1fr auto; border-radius: 18px; padding: 8px; gap: 6px; }
 .side__foot .ca__tag { grid-column: 1 / -1; justify-self: start; height: 26px; }
 .side__foot .ca__value { padding: 0 6px; font-size: 13px; }
-.side__foot .ca__full { display: none; }
-.side__foot .ca__short { display: inline; }
 .side__foot .ca__actions { grid-row: 2; grid-column: 2; }
 .side__foot .ca__btn { width: 34px; height: 34px; }
 

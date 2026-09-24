@@ -1,24 +1,22 @@
 /**
- * Knix Pool interface on Solana.
+ * Knix Pool interface, wired to the live contract.
  *
- * Lock an SPL tokenized stock with a chosen cooldown. A withdrawal requested while
- * the US market is open settles instantly; outside market hours it queues and
- * unlocks at the cooldown or the next open, whichever comes first.
+ * Lock an ERC20 position with a chosen cooldown. A withdrawal requested while the
+ * US market is open settles instantly; outside market hours it queues and unlocks
+ * at the cooldown or the next open, whichever comes first. The owner can cancel
+ * before it unlocks; afterwards anyone can finalize and collect the tip.
  *
- * Wallet connection and reads are live (SPL mint data and balances from the
- * Solana RPC). Execution is not: there is no Knix program on Solana yet, so the
- * lock action validates the input, shows what it would do and stops there.
- * Nothing is signed or sent.
+ * Reads come from the public RPC, writes from the connected wallet.
  */
-import { ACCOUNTS, COOLDOWN_OPTIONS, activeNetwork, explorerUrl } from '../config/solana.js';
+import { COOLDOWN_OPTIONS, CONTRACTS } from '../config/contracts.js';
+import { activeNetwork, explorerUrl } from '../config/network.js';
 import { shortAddress } from '../lib/address.js';
 import * as knix from '../lib/knix.js';
 import { toast } from '../lib/motion.js';
-import { connectWallet, initWallet, preloadWallet, subscribeWallet } from '../lib/wallet.js';
+import { connectWallet, initWallet, preloadWallet, subscribeWallet, switchToActiveNetwork } from '../lib/wallet.js';
 
 const ICON_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>';
-const STEPS = ['Review', 'Sign', 'Confirmed'];
-const NOT_LIVE = 'Solana execution will be enabled later. Nothing was signed or sent.';
+const STATUS_LABEL = ['Locked', 'Queued', 'Closed'];
 
 const tokenCache = new Map();
 
@@ -44,7 +42,7 @@ const sanitizeAmount = (value) => {
 
 function template() {
   const live = knix.knixDeployed();
-  const programLink = live ? explorerUrl('address', ACCOUNTS.PROGRAM_ID) : '';
+  const coreLink = live ? explorerUrl('address', CONTRACTS.KNIX_CORE_ADDRESS) : '';
   return `
   <article class="pool" aria-label="Knix position">
     <header class="pool__head">
@@ -68,10 +66,10 @@ function template() {
       <div class="field">
         <div class="field__top">
           <label for="pool-token">Tokenized stock</label>
-          <span class="field__bal" data-token-state>Paste a token mint</span>
+          <span class="field__bal" data-token-state>Paste a token address</span>
         </div>
         <div class="field__row">
-          <input id="pool-token" class="field__input field__input--address" type="text" spellcheck="false" autocomplete="off" placeholder="Mint address" data-token-input />
+          <input id="pool-token" class="field__input field__input--address" type="text" spellcheck="false" autocomplete="off" placeholder="0x..." data-token-input />
           <span class="token-chip" data-token-chip hidden><span class="coin coin--sm" aria-hidden="true"><span>?</span></span><b></b></span>
         </div>
       </div>
@@ -113,7 +111,7 @@ function template() {
     <dl class="pool__facts">
       <div><dt>Instant when</dt><dd>Market open</dd></div>
       <div><dt>Delay when</dt><dd>Market closed</dd></div>
-      <div><dt>Program</dt><dd>${programLink ? `<a href="${programLink}" target="_blank" rel="noopener">${shortAddress(ACCOUNTS.PROGRAM_ID)}</a>` : 'Pending'}</dd></div>
+      <div><dt>Contract</dt><dd>${coreLink ? `<a href="${coreLink}" target="_blank" rel="noopener">${shortAddress(CONTRACTS.KNIX_CORE_ADDRESS)}</a>` : 'Pending'}</dd></div>
     </dl>
 
     <ol class="steps" data-steps aria-label="Transaction progress"></ol>
@@ -155,14 +153,19 @@ export function mountPool(root = document) {
 
   const $ = (sel) => host.querySelector(sel);
   const $$ = (sel) => [...host.querySelectorAll(sel)];
+  const live = knix.knixDeployed();
 
   const state = {
     tab: 'lock',
     wallet: null,
     token: null,
     balance: null,
+    allowance: null,
     cooldown: COOLDOWN_OPTIONS[1].seconds,
-    market: knix.readMarket(),
+    bounds: null,
+    market: null,
+    positions: [],
+    busy: false,
     steps: null,
   };
 
@@ -196,12 +199,21 @@ export function mountPool(root = document) {
   const amountInput = $('[data-amount]');
   const tipInput = $('[data-tip]');
 
-  const amountRaw = () => {
+  const amountWei = () => {
     if (!state.token) return 0n;
     const value = amountInput.value.trim();
     if (!value || Number(value) <= 0) return 0n;
     try {
       return knix.parseUnits(value, state.token.decimals);
+    } catch {
+      return 0n;
+    }
+  };
+  const tipWei = () => {
+    const value = tipInput.value.trim();
+    if (!value || Number(value) <= 0) return 0n;
+    try {
+      return knix.parseUnits(value, 18);
     } catch {
       return 0n;
     }
@@ -213,29 +225,29 @@ export function mountPool(root = document) {
     const run = ++tokenRun;
     state.token = null;
     state.balance = null;
-    state.steps = null;
+    state.allowance = null;
     const chip = $('[data-token-chip]');
     const label = $('[data-token-state]');
     if (!address) {
       chip.hidden = true;
-      label.textContent = 'Paste a token mint';
+      label.textContent = 'Paste a token address';
       return update();
     }
-    if (!knix.isPublicKey(address)) {
+    if (!knix.isAddress(address)) {
       chip.hidden = true;
-      label.textContent = 'Not a valid Solana address';
+      label.textContent = 'Not a valid address';
       return update();
     }
-    label.textContent = 'Reading mint';
+    label.textContent = 'Reading token';
     update();
-    const token = tokenCache.get(address) || (await knix.readToken(address));
+    const token = tokenCache.get(address.toLowerCase()) || (await knix.readToken(address));
     if (run !== tokenRun) return;
     if (!token) {
       chip.hidden = true;
-      label.textContent = 'No SPL mint found at that address';
+      label.textContent = 'No ERC20 found at that address';
       return update();
     }
-    tokenCache.set(address, token);
+    tokenCache.set(address.toLowerCase(), token);
     state.token = token;
     chip.hidden = false;
     chip.querySelector('.coin span').textContent = token.symbol.charAt(0);
@@ -284,13 +296,19 @@ export function mountPool(root = document) {
 
   function ctaState() {
     const w = state.wallet;
+    if (!live) return { label: 'Contract not deployed', soft: true, action: 'pending' };
     if (!w?.available) return { label: 'Connect wallet', action: 'nowallet' };
     if (!w.connected) return { label: w.connecting ? 'Waiting for wallet' : 'Connect wallet', action: 'connect', busy: w.connecting };
-    if (state.tab === 'positions') return { label: 'Lock a position', action: 'golock' };
-    if (!state.token) return { label: 'Enter a token mint', soft: true, action: 'focustoken' };
-    const amount = amountRaw();
+    if (!w.onActiveChain) return { label: `Switch to ${activeNetwork.shortName}`, action: 'switch' };
+    if (state.busy) return { label: 'Confirm in wallet', busy: true };
+    if (state.tab === 'positions') return { label: 'Lock another position', action: 'golock' };
+    if (!state.token) return { label: 'Enter a token address', soft: true, action: 'focustoken' };
+    const amount = amountWei();
     if (amount <= 0n) return { label: 'Enter an amount', soft: true, action: 'focusamount' };
     if (typeof state.balance === 'bigint' && amount > state.balance) return { label: 'Amount above balance', soft: true };
+    if (typeof state.allowance === 'bigint' && state.allowance < amount) {
+      return { label: `Approve ${state.token.symbol}`, action: 'approve' };
+    }
     return { label: 'Lock position', action: 'lock' };
   }
 
@@ -299,40 +317,163 @@ export function mountPool(root = document) {
     update();
   }
 
-  cta.addEventListener('click', () => {
+  async function runTx(label, send) {
+    state.busy = true;
+    note.textContent = '';
+    update();
+    try {
+      const hash = await send();
+      note.textContent = `${label} sent, waiting for confirmation`;
+      await knix.waitForTx(hash);
+      return true;
+    } catch (error) {
+      note.textContent = knix.describeError(error);
+      if (state.steps) state.steps.status = 'error';
+      return false;
+    } finally {
+      state.busy = false;
+      update();
+    }
+  }
+
+  cta.addEventListener('click', async () => {
     const { action } = ctaState();
-    if (action === 'nowallet') return toast('No Solana wallet detected', { anchor: cta });
+    if (action === 'pending') return toast('Knix is not deployed on this network', { anchor: cta });
+    if (action === 'nowallet') return toast('No wallet detected', { anchor: cta });
     if (action === 'connect') return connectWallet();
+    if (action === 'switch') return switchToActiveNetwork();
     if (action === 'golock') return setTab('lock');
     if (action === 'focustoken') return tokenInput.focus();
     if (action === 'focusamount') return amountInput.focus();
+
+    const steps = ['Approve', 'Lock', 'Confirmed'];
+    if (action === 'approve') {
+      setSteps(steps, 0, 'active');
+      if (await runTx('Approval', () => knix.approve(state.token.address))) {
+        await refreshTokenState();
+        setSteps(steps, 1, 'idle');
+      }
+      return;
+    }
     if (action !== 'lock') return;
 
-    // Input is valid: show what would be locked, then stop. No transaction is built.
-    const tip = tipInput.value.trim();
-    const tipText = tip && Number(tip) > 0 ? `, ${tip} ${activeNetwork.nativeCurrency.symbol} tip` : '';
-    setSteps(STEPS, 1, 'idle');
-    note.textContent = `Lock ${amountInput.value.trim()} ${state.token.symbol}, ${cooldownLabel(state.cooldown)} cooldown${tipText}. ${NOT_LIVE}`;
-    toast('Live execution is currently disabled', { anchor: cta });
+    setSteps(steps, 1, 'active');
+    const ok = await runTx('Lock', () =>
+      knix.deposit({ token: state.token.address, amount: amountWei(), cooldown: state.cooldown, tip: tipWei() }),
+    );
+    if (!ok) return;
+    setSteps(steps, 3, 'done');
+    note.textContent = 'Position locked';
+    amountInput.value = '';
+    tipInput.value = '';
+    await Promise.all([refreshTokenState(), refreshPositions()]);
+    setTab('positions');
   });
 
   /* ───────── positions ───────── */
+  async function positionAction(id, action) {
+    const map = {
+      request: ['Withdrawal request', () => knix.requestWithdrawal(id)],
+      cancel: ['Cancellation', () => knix.cancelWithdrawal(id)],
+      finalize: ['Finalize', () => knix.finalizeWithdrawal(id)],
+    };
+    const [label, send] = map[action];
+    if (await runTx(label, send)) {
+      note.textContent = `${label} confirmed`;
+      await Promise.all([refreshPositions(), refreshTokenState()]);
+    }
+  }
+
+  $('[data-positions]').addEventListener('click', (event) => {
+    const button = event.target.closest('[data-action]');
+    if (!button) return;
+    positionAction(BigInt(button.dataset.id), button.dataset.action);
+  });
+
   function renderPositions() {
-    $('[data-positions]').innerHTML = state.wallet?.connected
-      ? '<p class="positions__empty">Positions appear here once Solana execution is live.</p>'
-      : '<p class="positions__empty">Connect a wallet to see your positions.</p>';
+    const host_ = $('[data-positions]');
+    const w = state.wallet;
+    if (!live) {
+      host_.innerHTML = '<p class="positions__empty">Knix is not deployed on this network.</p>';
+      return;
+    }
+    if (!w?.connected) {
+      host_.innerHTML = '<p class="positions__empty">Connect a wallet to see your positions.</p>';
+      return;
+    }
+    const open = state.positions.filter((p) => p.status !== knix.STATUS.CLOSED);
+    if (!open.length) {
+      host_.innerHTML = '<p class="positions__empty">No open positions yet. Lock one to get started.</p>';
+      return;
+    }
+    const now = Math.floor(Date.now() / 1000);
+    host_.innerHTML = open
+      .map((p) => {
+        const token = tokenCache.get(p.token.toLowerCase());
+        const symbol = token?.symbol || shortAddress(p.token, 6, 4);
+        const amount = knix.formatUnits(p.amount, token?.decimals ?? 18, 4);
+        const pending = p.status === knix.STATUS.PENDING;
+        const unlocked = pending && now >= p.unlockTime;
+        let meta;
+        if (!pending) meta = `Cooldown ${cooldownLabel(p.cooldown)}`;
+        else if (unlocked) meta = 'Ready to finalize';
+        else meta = `Unlocks in ${clock(p.unlockTime - now)}`;
+        const actions = pending
+          ? unlocked
+            ? `<button type="button" class="btn btn--sm btn--primary" data-action="finalize" data-id="${p.id}">Finalize</button>`
+            : `<button type="button" class="btn btn--sm btn--ghost" data-action="cancel" data-id="${p.id}">Cancel</button>`
+          : `<button type="button" class="btn btn--sm btn--primary" data-action="request" data-id="${p.id}">Withdraw</button>`;
+        return `
+        <div class="position" data-status="${p.status}">
+          <div class="position__main">
+            <span class="coin coin--sm" aria-hidden="true"><span>${symbol.charAt(0)}</span></span>
+            <div>
+              <b>${amount} ${symbol}</b>
+              <span class="position__meta" data-unlock="${pending ? p.unlockTime : 0}">${meta}</span>
+            </div>
+          </div>
+          <span class="position__status">${STATUS_LABEL[p.status]}</span>
+          ${actions}
+        </div>`;
+      })
+      .join('');
   }
 
   /* ───────── reads ───────── */
   async function refreshTokenState() {
     const w = state.wallet;
-    if (!state.token || !w?.connected) {
+    if (!state.token || !w?.connected || !w.onActiveChain) {
       state.balance = null;
+      state.allowance = null;
       return;
     }
-    const token = state.token;
-    const balance = await knix.readTokenBalance(token.address, w.account);
-    if (state.token === token) state.balance = balance;
+    const [balance, allowance] = await Promise.all([
+      knix.readTokenBalance(state.token.address, w.account),
+      knix.readAllowance(state.token.address, w.account),
+    ]);
+    state.balance = balance;
+    state.allowance = allowance;
+  }
+
+  async function refreshPositions() {
+    const w = state.wallet;
+    if (!live || !w?.connected) {
+      state.positions = [];
+      return;
+    }
+    state.positions = await knix.readPositions(w.account);
+    await Promise.all(
+      [...new Set(state.positions.map((p) => p.token.toLowerCase()))]
+        .filter((address) => !tokenCache.has(address))
+        .map(async (address) => {
+          const token = await knix.readToken(address);
+          if (token) tokenCache.set(address, token);
+        }),
+    );
+  }
+
+  async function refreshMarket() {
+    state.market = await knix.readMarket();
   }
 
   /* ───────── render ───────── */
@@ -343,7 +484,7 @@ export function mountPool(root = document) {
     const dot = marketPill.querySelector('.dot');
     const text = marketPill.lastElementChild;
     if (!state.market) {
-      text.textContent = 'Reading market';
+      text.textContent = live ? 'Reading market' : 'Not deployed';
     } else if (state.market.open) {
       dot.className = 'dot dot--warm';
       text.textContent = 'Market open, instant';
@@ -355,11 +496,19 @@ export function mountPool(root = document) {
 
     $('[data-balance]').textContent = !w?.connected
       ? 'Not connected'
-      : !state.token
-        ? 'Pick a token'
-        : typeof state.balance === 'bigint'
-          ? knix.formatUnits(state.balance, state.token.decimals, 4)
-          : 'Unavailable';
+      : !w.onActiveChain
+        ? 'Wrong network'
+        : !state.token
+          ? 'Pick a token'
+          : typeof state.balance === 'bigint'
+            ? knix.formatUnits(state.balance, state.token.decimals, 4)
+            : 'Unavailable';
+
+    $('[data-bounds]').textContent = state.bounds
+      ? `${clock(state.bounds.min)} to ${clock(state.bounds.max)}`
+      : '';
+    const openCount = state.positions.filter((p) => p.status !== knix.STATUS.CLOSED).length;
+    $('[data-count]').textContent = openCount ? String(openCount) : '';
 
     const c = ctaState();
     $('[data-cta-label]').textContent = c.label;
@@ -368,8 +517,7 @@ export function mountPool(root = document) {
     cta.classList.toggle('is-busy', Boolean(c.busy));
 
     const steps = state.steps;
-    if (!steps && note.textContent.endsWith(NOT_LIVE)) note.textContent = '';
-    $('[data-steps]').innerHTML = (steps?.list || STEPS)
+    $('[data-steps]').innerHTML = (steps?.list || ['Approve', 'Lock', 'Confirmed'])
       .map((label, i) => {
         let status = 'idle';
         if (steps) status = i < steps.index ? 'done' : i === steps.index ? steps.status : 'idle';
@@ -378,13 +526,24 @@ export function mountPool(root = document) {
       .join('');
 
     renderPositions();
-    updateComposition();
+    updateComposition(openCount);
   }
 
-  function updateComposition() {
-    if (!compHost || !state.market) return;
-    compHost.querySelector('.comp').dataset.compState = 'live';
-    compHost.querySelector('[data-comp-value]').textContent = state.market.open ? 'Open' : 'Closed';
+  function updateComposition(openCount) {
+    if (!compHost) return;
+    const comp = compHost.querySelector('.comp');
+    const value = compHost.querySelector('[data-comp-value]');
+    if (state.market) {
+      comp.dataset.compState = 'live';
+      value.textContent = state.market.open ? 'Open' : 'Closed';
+    }
+    compHost.querySelector('[data-comp-locked]').textContent = String(
+      state.positions.filter((p) => p.status === knix.STATUS.ACTIVE).length,
+    );
+    compHost.querySelector('[data-comp-queued]').textContent = String(
+      state.positions.filter((p) => p.status === knix.STATUS.PENDING).length,
+    );
+    if (!openCount) return;
   }
 
   /* ───────── wiring ───────── */
@@ -395,20 +554,26 @@ export function mountPool(root = document) {
     if (wallet.error && wallet.error !== lastError) note.textContent = wallet.error;
     lastError = wallet.error;
     update();
-    if (wallet.account === lastKey) return;
-    lastKey = wallet.account;
-    await refreshTokenState();
+    const key = `${wallet.account}:${wallet.chainId}`;
+    if (key === lastKey) return;
+    lastKey = key;
+    await Promise.all([refreshTokenState(), refreshPositions()]);
     update();
   });
 
-  // The market clock and countdowns tick every second; balances refresh far less often.
-  setInterval(() => {
-    state.market = knix.readMarket();
-    update();
-  }, 1000);
-  setInterval(() => {
-    if (state.wallet?.connected && state.token) refreshTokenState().then(update);
-  }, 30_000);
+  if (live) {
+    knix.readCooldownBounds().then((bounds) => {
+      state.bounds = bounds;
+      update();
+    });
+    refreshMarket().then(update);
+    // countdowns tick every second; chain reads are far less frequent
+    setInterval(update, 1000);
+    setInterval(() => {
+      refreshMarket().then(update);
+      if (state.wallet?.connected && !state.busy) refreshPositions().then(update);
+    }, 30_000);
+  }
 
   // The app page restores sessions eagerly; on the landing the wallet loads once the pool is near.
   initWallet({ eager: false });

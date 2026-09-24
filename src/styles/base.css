@@ -333,8 +333,6 @@ ul, ol { margin: 0; padding: 0; list-style: none; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .ca[data-state='pending'] .ca__value { color: var(--ink-2); letter-spacing: 0.02em; }
-.ca__short { display: none; }
-@media (max-width: 560px) { .ca__full { display: none; } .ca__short { display: inline; } }
 .ca__actions { display: inline-flex; gap: 4px; }
 .ca__btn {
   display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;

@@ -1,6 +1,6 @@
-import { activeNetwork } from '../config/solana.js';
+import { activeNetwork } from '../config/network.js';
 
-/** Read only JSON-RPC call against the configured Solana cluster. Resolves null on failure. */
+/** Read only JSON-RPC call against the configured network. Resolves null on failure. */
 export async function rpcCall(method, params = [], { timeout = 6000, network = activeNetwork } = {}) {
   if (!network.rpcUrl) return null;
   const controller = new AbortController();
@@ -22,14 +22,8 @@ export async function rpcCall(method, params = [], { timeout = 6000, network = a
   }
 }
 
-/** Latest confirmed slot from the public RPC, or null. */
-export async function latestSlot() {
-  const slot = await rpcCall('getSlot', [{ commitment: 'confirmed' }]);
-  return typeof slot === 'number' ? slot : null;
-}
-
-/** SOL balance of `owner` in lamports, or null. */
-export async function readSolBalance(owner) {
-  const result = await rpcCall('getBalance', [owner, { commitment: 'confirmed' }]);
-  return typeof result?.value === 'number' ? BigInt(result.value) : null;
+/** Latest block number from the public RPC, or null. */
+export async function latestBlock() {
+  const hex = await rpcCall('eth_blockNumber');
+  return hex ? Number.parseInt(hex, 16) : null;
 }
