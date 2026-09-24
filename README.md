@@ -20,6 +20,7 @@ Node 22 (see `engines` in `package.json`).
 | --- | --- | --- |
 | `/` | `index.html` + `src/main.js` | Landing, with the live Pool card |
 | `/app` | `app.html` + `src/app.js` | Pool app and module surfaces |
+| `/docs` | `docs.html` + `src/docs.js` | Docs, rendered from the GitBook source in `docs/` |
 | any other | `public/404.html` | Not found page (served by Vercel) |
 
 ## Configuration
@@ -80,6 +81,11 @@ and an empty wallet list.
 
 `vercel.json` also serves `/app` without the `.html` suffix, caches hashed assets for a year, and
 sends `nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY` and a restrictive `Permissions-Policy`.
+
+## Docs
+
+`docs/` is the GitBook source (`SUMMARY.md` drives the navigation). The same markdown is bundled into
+`/docs` at build time with `marked`, so editing a file in `docs/` updates both GitBook and the site.
 
 ## Brand assets
 

@@ -10,6 +10,7 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, 'index.html'),
         app: resolve(import.meta.dirname, 'app.html'),
+        docs: resolve(import.meta.dirname, 'docs.html'),
       },
     },
   },

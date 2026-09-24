@@ -2,10 +2,10 @@
  * Hero surface: a black red lacquer liquid in slow motion, reflecting a dark
  * studio (red strip lights, one softbox). One displaced plane, no objects.
  * It fills the lower band of the hero so copy and controls stay clear.
- * Renders only while visible and disposes on teardown.
+ * Renders only while visible and disposes on teardown. Shaders compile off the
+ * main thread where the driver allows, and the surface fades in on its first frame.
  */
 import {
-  Clock,
   Color,
   DirectionalLight,
   DoubleSide,
@@ -62,7 +62,7 @@ function darkStudio(renderer) {
   return target;
 }
 
-export function mountLiquidScene(container, { reduced = false } = {}) {
+export async function mountLiquidScene(container, { reduced = false } = {}) {
   if (!hasWebGL()) return null;
   const small = window.matchMedia('(max-width: 720px)').matches;
   let renderer;
@@ -121,13 +121,16 @@ export function mountLiquidScene(container, { reduced = false } = {}) {
       );
   };
 
-  const geometry = new PlaneGeometry(size.x, size.y, small ? 160 : 300, small ? 140 : 260);
+  // Waves are long; ~0.18 units per segment keeps them smooth at a third of the old vertex count.
+  const geometry = new PlaneGeometry(size.x, size.y, small ? 120 : 220, small ? 100 : 180);
   const surface = new Mesh(geometry, material);
   surface.rotation.x = -Math.PI / 2;
   surface.position.z = -10;
   scene.add(surface);
 
   const camera = new PerspectiveCamera(34, 1, 0.1, 120);
+  // Compile before anything can render, so the first frame never blocks the page.
+  await renderer.compileAsync(scene, camera).catch(() => {});
   const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
   const onPointer = (e) => {
     pointer.tx = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -135,25 +138,29 @@ export function mountLiquidScene(container, { reduced = false } = {}) {
   };
   if (!reduced) window.addEventListener('pointermove', onPointer, { passive: true });
 
+  // Scroll only sets a target; the camera eases toward it so wheel steps do not jolt it.
   let scrollP = 0;
+  let scrollTarget = 0;
   const onScroll = () => {
     const h = container.getBoundingClientRect().height || 1;
-    scrollP = Math.min(1, Math.max(0, window.scrollY / h));
+    scrollTarget = Math.min(1, Math.max(0, window.scrollY / h));
   };
   if (!reduced) window.addEventListener('scroll', onScroll, { passive: true });
 
   // camera pitched slightly up so the horizon sits in the lower third
   let rig = { y: 1, targetY: 2 };
-  function render(t) {
+  function render(t, dt = 0) {
     uniforms.uTime.value = t;
-    pointer.x += (pointer.tx - pointer.x) * 0.04;
-    pointer.y += (pointer.ty - pointer.y) * 0.04;
+    const k = 1 - Math.exp(-2.4 * dt);
+    pointer.x += (pointer.tx - pointer.x) * k;
+    pointer.y += (pointer.ty - pointer.y) * k;
+    scrollP += (scrollTarget - scrollP) * (1 - Math.exp(-6 * dt));
     camera.position.set(pointer.x * 0.3, rig.y + scrollP * 0.5, 5.5);
     camera.lookAt(pointer.x * 0.15, rig.targetY - pointer.y * 0.08, -6);
     renderer.render(scene, camera);
   }
 
-  const clock = new Clock();
+  let last = 0;
   let elapsed = 6;
   let running = false;
   let raf = 0;
@@ -172,16 +179,18 @@ export function mountLiquidScene(container, { reduced = false } = {}) {
   const ro = new ResizeObserver(resize);
   ro.observe(container);
 
-  function loop() {
+  function loop(now) {
     raf = requestAnimationFrame(loop);
-    elapsed += Math.min(clock.getDelta(), 0.05);
-    render(elapsed);
+    const dt = Math.min((now - last) / 1000, 0.05);
+    last = now;
+    elapsed += dt;
+    render(elapsed, dt);
   }
   const start = () => {
     if (running || reduced) return;
     running = true;
-    clock.getDelta();
-    loop();
+    last = performance.now();
+    raf = requestAnimationFrame(loop);
   };
   const stop = () => {
     running = false;
@@ -198,6 +207,8 @@ export function mountLiquidScene(container, { reduced = false } = {}) {
   const onVisibility = () => (document.hidden ? stop() : visible && start());
   document.addEventListener('visibilitychange', onVisibility);
 
+  onScroll();
+  scrollP = scrollTarget;
   resize();
   render(elapsed);
   container.classList.add('is-ready');

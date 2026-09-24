@@ -88,7 +88,7 @@ function composition({ kit, small }) {
     scene,
     camera,
     update(t, { pointer, progress }) {
-      group.rotation.y = -0.35 + Math.sin(t * 0.25) * 0.12 + pointer.x * 0.18 + (progress - 0.5) * 0.5;
+      group.rotation.y = -0.35 + Math.sin(t * 0.25) * 0.12 + pointer.x * 0.18 + (progress - 0.5) * 0.3;
     },
   };
 }
@@ -248,7 +248,9 @@ function vote({ kit, small }) {
         y = 1.35 - ((u - 0.7) / 0.3) * 0.75;
       }
       ballot.position.set(0, y, 0);
-      ballot.scale.setScalar(Math.min(1, u / 0.08) || 0.001);
+      // ease the ballot in at the top of each cycle instead of popping it
+      const grow = Math.min(1, u / 0.15);
+      ballot.scale.setScalar(Math.max(0.001, grow * grow * (3 - 2 * grow)));
       group.rotation.y = -0.5 + Math.sin(t * 0.25) * 0.12 + pointer.x * 0.2;
     },
   };

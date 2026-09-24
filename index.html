@@ -18,6 +18,9 @@
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <!-- hero headline fonts, fetched before the stylesheet asks for them -->
+    <link rel="preload" href="/node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin />
     <script type="module" src="/src/main.js"></script>
   </head>
   <body>
@@ -36,6 +39,7 @@
           <a href="#twofold">Twofold</a>
           <a href="#ecosystem">Ecosystem</a>
           <a href="#chain">Chain</a>
+          <a href="/docs.html">Docs</a>
         </nav>
         <div class="nav__actions">
           <a class="btn btn--primary btn--sm" href="/app.html" data-magnetic="0.2">Launch app</a>
@@ -50,6 +54,7 @@
         <a href="#twofold" style="--i:1"><small>02</small>Twofold</a>
         <a href="#ecosystem" style="--i:2"><small>03</small>Ecosystem</a>
         <a href="#chain" style="--i:3"><small>04</small>Chain</a>
+        <a href="/docs.html" style="--i:4"><small>05</small>Docs</a>
       </nav>
       <a class="btn btn--primary btn--block" href="/app.html">Launch app</a>
     </div>
@@ -65,20 +70,20 @@
         <div class="wrap hero__inner">
           <div class="hero__content">
             <span class="eyebrow" data-reveal="rise">Built for Robinhood Chain</span>
-            <h1 id="hero-title" class="display hero__title" data-split>Capital that <em>works twice</em></h1>
-            <p class="hero__lede" data-reveal="rise" style="--stagger:3">One pool. Two streams. Zero noise.</p>
-            <div class="hero__actions" data-reveal="rise" style="--stagger:4">
+            <h1 id="hero-title" class="display hero__title" data-split>Liquidity that <em>works twice</em></h1>
+            <p class="hero__lede" data-reveal="rise" style="--stagger:2">One position earns twice: <b>vault interest</b> at rest, <b>trading fees</b> in motion.</p>
+            <div class="hero__actions" data-reveal="rise" style="--stagger:3">
               <a class="btn btn--primary" href="#pool" data-magnetic>
                 Enter the Pool
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>
               </a>
               <a class="btn btn--ghost" href="#ecosystem" data-magnetic>Explore Knix</a>
             </div>
-            <div class="hero__ca" data-reveal="rise" style="--stagger:5" data-contract-address></div>
+            <div class="hero__ca" data-reveal="rise" style="--stagger:4" data-contract-address></div>
           </div>
         </div>
 
-        <ul class="wrap hero__meta" data-reveal="rise" style="--stagger:6">
+        <ul class="wrap hero__meta" data-reveal="rise" style="--stagger:5">
           <li><span>Network</span><b data-net="name"></b></li>
           <li><span>Chain ID</span><b data-net="chainId"></b></li>
           <li><span>Gas</span><b data-net="gas"></b></li>
@@ -316,6 +321,7 @@
           <a href="#twofold">Twofold</a>
           <a href="#ecosystem">Ecosystem</a>
           <a href="#chain">Network</a>
+          <a href="/docs.html">Docs</a>
         </nav>
         <div class="footer__col">
           <h4>Network</h4>

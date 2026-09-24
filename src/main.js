@@ -125,16 +125,15 @@ function initChainActions() {
   });
 }
 
-/* Hero liquid surface loads after first paint */
+/* Hero liquid surface starts loading as soon as the page has parsed, not on idle */
 function loadHeroSurface() {
   const stage = document.querySelector('[data-scene="hero"]');
   if (!stage) return;
-  const go = () =>
+  setTimeout(() =>
     import('./three/liquid-scene.js')
       .then(({ mountLiquidScene }) => mountLiquidScene(stage, { reduced: reducedMotion() }))
-      .catch(() => {});
-  if ('requestIdleCallback' in window) requestIdleCallback(go, { timeout: 1200 });
-  else setTimeout(go, 300);
+      .catch(() => {}),
+  );
 }
 
 /* Photographic section renders share one WebGL overlay */
