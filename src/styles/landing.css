@@ -58,8 +58,7 @@ body::after {
 }
 .hero__lede b { font-weight: 600; color: var(--accent-hi); white-space: nowrap; }
 
-/* The hero is above the fold: reveal it quicker than scroll sections */
-.hero [data-split] .w > span { transition-duration: 760ms; transition-delay: calc(var(--i, 0) * 28ms); }
+/* The hero is above the fold: its headline paints at once, the rest reveals quickly */
 .hero [data-reveal] { transition-duration: 600ms, 760ms, 600ms; transition-delay: calc(120ms + var(--stagger) * 55ms); }
 .hero__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 36px; }
 .hero__ca { margin-top: 28px; max-width: 100%; }
