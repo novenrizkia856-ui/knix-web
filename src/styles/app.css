@@ -15,7 +15,7 @@
   background: linear-gradient(180deg, rgba(19, 13, 13, 0.7), rgba(9, 6, 6, 0.7));
   backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
 }
-.side__brand { padding: 0 8px; }
+.side__brand { align-self: flex-start; margin-left: 8px; }
 .side__nav { display: grid; gap: 2px; }
 .side__nav a {
   display: flex; align-items: center; gap: 12px;

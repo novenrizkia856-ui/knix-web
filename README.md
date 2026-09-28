@@ -100,8 +100,11 @@ overlap with the originals, so they are pixel faithful at any size).
 | `apple-touch-icon.png`, `icon-192.png`, `icon-512.png` | home screen and manifest icons |
 | `/favicon.svg`, `/og-image.jpg` | browser tab and social card |
 
-Brand colours: green `#70f250` (token `--brand`), deep green `#023a21`. The site accent stays red;
-the logo glyph is the one green element, the wordmark follows the page ink.
+Brand colours: deep green `#023a21` (token `--brand`), light green `#70f250`. The site uses the
+darker logo option only, since the light green clashed with the red accent. The dark lockup sits
+on a pearl plate (`.brand--plate`, token `--brand-plate`) that matches the Launch app pill, the
+same dark on light pairing as the client art. Favicon, home screen icons, the 404 mark and the
+social card follow the same pairing.
 
 ## Structure
 
