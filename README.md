@@ -42,7 +42,7 @@ Robinhood Chain mainnet (4663):
 | --- | --- |
 | Knix | `0x3DD411C10ffa55Bb13B54e289de6aA7e3c3A03a0` |
 | KnixLens | `0x0E0f6eE839e58462Ece17C06E9A6dA4Bc2aa7eD4` |
-| $KNIX token | not deployed, the CA section shows Coming Soon |
+| $KNIX token | not deployed; set `KNIX_TOKEN_CA` in src/config/contracts.js (null shows Coming Soon) |
 
 Set `KNIX_TOKEN_ADDRESS` (or `VITE_KNIX_TOKEN_ADDRESS`) once the token exists; the CA component then
 shows the address with copy and an explorer link.

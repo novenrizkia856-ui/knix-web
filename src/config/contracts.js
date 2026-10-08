@@ -14,6 +14,12 @@
 
 import { activeNetwork } from './network.js';
 
+/**
+ * $KNIX TOKEN CA, the launch line.
+ * null (or '') shows Coming Soon. Anything else is shown on the site as is.
+ */
+export const KNIX_TOKEN_CA = null;
+
 const env = import.meta.env;
 const pick = (envValue, fallback) => (envValue ?? '').trim() || fallback;
 
@@ -27,8 +33,8 @@ const ADDRESS_BOOK = {
     KNIX_CORE_ADDRESS: '0x3DD411C10ffa55Bb13B54e289de6aA7e3c3A03a0',
     // Read only batching helper.
     KNIX_LENS_ADDRESS: '0x0E0f6eE839e58462Ece17C06E9A6dA4Bc2aa7eD4',
-    // $KNIX token. No token exists yet, so the CA section stays on Coming Soon.
-    KNIX_TOKEN_ADDRESS: '',
+    // $KNIX token. Set through KNIX_TOKEN_CA at the top of this file.
+    KNIX_TOKEN_ADDRESS: KNIX_TOKEN_CA,
   },
   testnet: {
     KNIX_CORE_ADDRESS: '',

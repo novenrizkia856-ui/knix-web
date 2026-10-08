@@ -7,6 +7,9 @@ const ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" st
 const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
 const ICON_OUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M9 5h10v10M19 5 6 18"/></svg>';
 
+const escapeHtml = (value) =>
+  value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
 async function writeClipboard(text) {
   try {
     await navigator.clipboard.writeText(text);
@@ -25,19 +28,21 @@ async function writeClipboard(text) {
 
 /**
  * Renders the $KNIX contract address chip into every [data-contract-address].
- * The value always comes from CONTRACTS.KNIX_TOKEN_ADDRESS.
+ * The value always comes from CONTRACTS.KNIX_TOKEN_ADDRESS (KNIX_TOKEN_CA).
+ * Empty or null shows Coming Soon; any other value is shown as is.
  */
 export function mountContractAddress(root = document) {
-  const address = CONTRACTS.KNIX_TOKEN_ADDRESS;
-  const live = isConfiguredAddress(address);
+  const address = String(CONTRACTS.KNIX_TOKEN_ADDRESS ?? '').trim();
+  const live = address !== '';
+  const shown = escapeHtml(address);
 
   root.querySelectorAll('[data-contract-address]').forEach((host) => {
-    const link = live ? explorerUrl('token', address) : '';
+    const link = isConfiguredAddress(address) ? explorerUrl('token', address) : '';
     host.innerHTML = `
       <div class="ca" data-state="${live ? 'live' : 'pending'}">
         <span class="ca__rim" aria-hidden="true"></span>
         <span class="ca__tag"><span class="dot ${live ? 'dot--warm' : 'dot--accent dot--pulse'}"></span>$KNIX CA</span>
-        <span class="ca__value" ${live ? `title="${address}"` : ''}>${live ? address : 'Coming Soon'}</span>
+        <span class="ca__value" ${live ? `title="${shown}"` : ''}>${live ? shown : 'Coming Soon'}</span>
         <span class="ca__actions">
           <button type="button" class="ca__btn" data-copy aria-label="${live ? 'Copy contract address' : 'Contract address coming soon'}">${ICON_COPY}</button>
           ${link ? `<a class="ca__btn" href="${link}" target="_blank" rel="noopener" aria-label="View token on explorer">${ICON_OUT}</a>` : ''}
